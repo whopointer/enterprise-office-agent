@@ -1,205 +1,207 @@
-# DeepAgent Skill 机制设计文档
+# DeepAgent Skill 系统设计文档
 
-> 参考 AgentScope skill 机制复现 | 仅保留 LangChain / SpringAI 适配 | 三阶段低耦合 | D
+> 对标官方 Skill 格式规范（`docs/Sills格式要求.docx`） | 加载 + 注入 + LLM 路由 + 执行 + 量化评估
 
-## 1. 目标拆解
-
-### 1.1 总目标
-
-参考 AgentScope 的 skill 机制，用 deepagent 范式复现。仅保留 **LangChain** 和 **SpringAI** 两种框架适配，三阶段管线必须有明确的代码边界、低耦合、DSL 驱动、零硬编码。
-
-### 1.2 子目标
+## 1. 架构概览
 
 ```
-1. 三阶段流水线
-   ├── Discovery（发现）：扫描 skill 目录，解析元信息、reference、asset、红线规则
-   ├── Activation（激活）：根据用户 query 匹配 skill，执行红线校验，决定是否激活
-   └── Execution（执行）：加载 skill 上下文（reference + asset），适配框架执行
-
-2. 测试 skill 完整性
-   ├── reference：skill 间引用（如 skill_search 引用其他 skill）
-   ├── asset：Word 文档生成（.docx template → 填充 → 输出）
-   ├── skill_search：搜寻所有已注册 skill 的能力
-   └── 触发判断：skill 是否被激活的决策逻辑 + 红线全满足才调用
-
-3. 综合量化评估
-   ├── Token 消耗：不同大小 skill 的 token 消耗对比（小 / 中 / 大 skill 各一个）
-   ├── 调用准确率：skill 激活 / 拒绝 / 误激活 / 漏激活的统计
-   ├── 上下文装载质量：reference / asset 是否按 DSL 正确展开和注入
-   ├── 规则执行质量：红线命中、拦截、放行结果是否符合预期
-   └── 输出量化报告
+┌─────────────────────────────────────┐
+│           _skill/ Skill 中间件        │
+│  扫描/解析 SKILL.md → 注入 prompt      │
+│  (Discovery + Prompt Injection)      │
+└──────────────┬──────────────────────┘
+               │ skills_catalog {name, description}
+               ▼
+┌─────────────────────────────────────┐
+│           llm/ 大模型路由             │
+│  LLM 选 skill → JSON schema 校验      │
+│  (OpenAIChatSkillRouter)             │
+└──────────────┬──────────────────────┘
+               │ selected skill
+               ▼
+┌─────────────────────────────────────┐
+│           core/ 执行器                │
+│  构建 prompt → 调适配器 → 记录指标     │
+│  (SkillExecutor + TokenTracker)      │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│         adapters/ 框架适配器          │
+│  OpenAICompatible / LangChain        │
+│  SpringAI / WordDocument             │
+└─────────────────────────────────────┘
 ```
 
----
+## 2. 模块职责
 
-## 2. 三阶段定义
+| 模块 | 文件 | 职责 |
+|------|------|------|
+| `_skill/models.py` | SkillDefinition, SkillIndex | 数据模型 |
+| `_skill/parser.py` | parse_skill_file | 解析 SKILL.md YAML frontmatter |
+| `_skill/discovery.py` | FileSkillDiscovery | 扫描 skills/ 目录 → SkillIndex |
+| `_skill/middleware.py` | SkillsMiddleware | before_agent + system prompt 注入 |
+| `_skill/prompt.py` | format_skills_prompt | 渲染可用 skill 清单 |
+| `core/executor.py` | SkillExecutor, TokenTracker | 构建 prompt + 调适配器 + 记录 token |
+| `core/runtime_metrics.py` | RuntimeCollector | 混淆矩阵 + token + 延迟采集 |
+| `llm/skill_router.py` | OpenAIChatSkillRouter | LLM 选择 skill |
+| `llm/schema.py` | validate_llm_decision_payload | 校验 LLM 返回的 JSON |
+| `adapters/skill_adapters.py` | 4 种 Adapter | 真实执行 |
+| `agent/field_extractor.py` | extract_fields_from_query | 正则提取中文字段 |
+| `scripts/chat_with_llm.py` | CLI | 测试 `.env` 中的大模型连通性 |
+| `scripts/llm_skill_chat.py` | CLI | 真实 LLM 路由 + 本地 mock adapter 执行 |
+| `evals/` | 预留 | 当前仅保留包入口，批量 evaluator 尚未接入源码 |
 
-### 2.1 Discovery（发现阶段）
+## 3. SKILL.md 格式
 
-| 维度 | 说明 |
-|------|------|
-| **输入** | `skills_dir` 路径 |
-| **输出** | `SkillIndex { skills[], ref_graph, asset_map, redline_rules }` |
-| **职责** | 扫描文件系统 → 解析 SKILL.md frontmatter DSL → 构建 skill 间引用有向图 → 索引 asset 文件 → 提取红线规则 |
-| **解耦手段** | 输出为纯数据 `SkillIndex`，下游阶段不感知文件系统 |
-| **零硬编码** | skill 元信息全部来自 SKILL.md 的 YAML frontmatter，无代码内常量 |
-
-### 2.2 Activation（激活阶段）
-
-| 维度 | 说明 |
-|------|------|
-| **输入** | `SkillIndex` + `user_query` |
-| **输出** | `MatchResult { skill, confidence, redline_pass, reason }` 或 `NoSkillMatched` / `RedLineViolation` |
-| **职责** | 关键词 / 语义匹配 → 红线规则逐条校验 → 计算置信度 → 决定是否激活 |
-| **解耦手段** | 不感知 skill 文件内容，只消费 Stage1 产出的 `SkillIndex` |
-| **红线机制** | 红线 DSL 定义在 SKILL.md 中，如 `required_fields: [filename]` → 缺失即拒绝激活，返回 `RedLineViolation` |
-
-### 2.3 Execution（执行阶段）
-
-| 维度 | 说明 |
-|------|------|
-| **输入** | `MatchResult` + `adapter: LangChainAdapter \| SpringAIAdapter` |
-| **输出** | `ExecutionResult { output, metrics: ExecutionMetrics, asset_paths }` |
-| **职责** | 组装 prompt（skill body + reference 展开 + asset 注入）→ 调用框架适配器 → 记录执行指标 → 返回结果 |
-| **解耦手段** | 框架通过 `Adapter` 接口抽象，Stage3 不直接 import langchain 或 springai |
-| **量化评估** | `MetricsCollector` 统一采集 token、调用准确率、装载完整性、红线命中、适配器执行结果等指标 |
-
----
-
-## 3. 三阶段耦合关系
-
-```
-Discovery ──( SkillIndex )──▶ Activation ──( MatchResult )──▶ Execution ──( ExecutionResult )──▶ User
-     ▲                            ▲                               ▲
-     │                            │                               │
-  SKILL.md DSL               红线规则 DSL                    Adapter 接口
-```
-
-每阶段只依赖上游的**纯数据产物**，无函数调用耦合，可独立单元测试，可替换任一阶段实现。
-
----
-
-## 4. SKILL.md DSL 规范
+对齐官方规范（`docs/Sills格式要求.docx`），仅要求以下 YAML frontmatter 字段：
 
 ```yaml
 ---
-name: skill_name                    # 唯一标识
-description: 功能描述                 # 用于匹配
-triggers:                           # 触发条件
-  keywords: [word, docx]
-  patterns: [create.*document]
-
-red_lines:                          # 红线规则（全部满足才激活）
-  - field: filename                 # 必须提供的字段名
-    message: 缺少文件名参数
-  - field: template_name
-    message: 未指定模板
-
-references:                         # 引用的其他 skill
-  - skill_name
-
-assets:                             # 资源文件
-  - path: assets/template.docx
-    type: word_document
-    description: 报告模板
-
-metrics:                            # 量化评估配置
-  expected_skill: word_generator
-  expected_activation: true
-  expected_references: [skill_name]
-  expected_assets: [assets/template.docx]
-
-token_estimate:                     # token 估算
-  system_prompt: 500
-  per_reference: 200
-  per_asset: 300
----
-```
-
+name: skill-name                    # 必填：小写字母+数字+连字符，1-64 字符
+description: 功能描述与触发条件      # 必填：最多 1024 字符
+allowed-tools: Read, Bash, Write    # 可选：推荐使用的工具
+license: MIT                        # 可选
+compatibility: python>=3.10          # 可选
 ---
 
-## 5. 测试 Skill 清单
+# 使用流程
+1. 判断任务是否命中本 skill
+2. 按需读取 references/ 中的资料
+3. 调用 scripts/ 中的可执行脚本
+4. 使用 assets/ 中的模板或素材
+```
 
-| Skill | 验证维度 | 说明 |
-|-------|---------|------|
-| **word_generator** | asset | .docx 模板填充生成 Word 文档 |
-| **skill_search** | reference + 搜寻 | 引用其他 skill，列出所有已注册 skill |
-| **redline_demo** | 红线 | 定义多项红线，验证缺字段时拒绝激活 |
-| **mockskill** | 基础 | 小 skill，用于 token 基线对比 |
+**不再使用的字段**（已移除）：`triggers`, `red_lines`, `references` (YAML 声明), `assets` (YAML 声明), `metrics`, `token_estimate`。
 
----
+当前解析器还允许可选 `metadata` mapping，并将其规整为 `dict[str, str]`；它只作为扩展元信息保存，不参与路由、红线或执行决策。
 
-## 6. 量化评估指标
+> references/、assets/、scripts/ 以目录形式存在，由 Agent 运行时按需读取，不在 SKILL.md 中声明。
 
-量化标准不只统计 token 消耗，还要覆盖 skill 机制本身是否“选得准、拦得住、装得全、跑得通”。所有指标由 `MetricsCollector` 统一采集，按测试用例、skill 大小、框架适配器三个维度输出报告。
+## 4. 渐进披露（Progressive Disclosure）
 
-### 6.1 Token 消耗指标
+两步走，对齐官方格式的分层暴露策略：
 
-| 指标 | 计算方式 |
-|------|---------|
-| `input_tokens` | system_prompt + 展开的 reference + asset 描述 + user_query |
-| `output_tokens` | 框架返回的实际 token 数 |
-| `total_tokens` | input + output |
-| `overhead_pct` | (total - baseline_mockskill) / baseline_mockskill × 100% |
+**第一步 — 轻量目录**：LLM 路由时，`OpenAIChatSkillRouter` 的 system prompt 只包含 `skills_catalog=[{name, description}]`。当前仓库 `skills/` 下有 21 个 skill。
 
-小 / 中 / 大 skill 各跑一次，输出 token 对比表。
+`SkillsMiddleware.modify_system_prompt()` 面向通用 Agent 注入时，会额外展示 skill 来源、完整 `SKILL.md` 路径、license/compatibility 和加载告警；这不是 LLM 路由专用 prompt。
 
-### 6.2 Skill 调用准确率指标
-
-| 指标 | 计算方式 |
-|------|---------|
-| `activation_accuracy` | (TP + TN) / 全部测试用例 |
-| `precision` | TP / (TP + FP)，衡量被激活的 skill 中有多少是正确调用 |
-| `recall` | TP / (TP + FN)，衡量应该激活的 skill 有多少被成功激活 |
-| `false_positive_rate` | FP / (FP + TN)，衡量误激活比例 |
-| `false_negative_rate` | FN / (FN + TP)，衡量漏激活比例 |
-| `confidence_avg` | 所有正确激活用例的平均置信度 |
-
-判定口径：
-
-| 类型 | 含义 |
-|------|------|
-| TP | 期望激活某 skill，实际也激活了同一个 skill |
-| TN | 期望不激活，实际返回 `NoSkillMatched` 或 `RedLineViolation` |
-| FP | 期望不激活或期望激活其他 skill，但实际激活了错误 skill |
-| FN | 期望激活某 skill，但实际未激活 |
-
-### 6.3 红线规则指标
-
-| 指标 | 计算方式 |
-|------|---------|
-| `redline_block_rate` | 正确拦截的红线用例 / 应拦截红线用例 |
-| `redline_pass_rate` | 正确放行的合法用例 / 应放行合法用例 |
-| `redline_false_block_rate` | 被错误拦截的合法用例 / 应放行合法用例 |
-| `redline_reason_match_rate` | 返回的 `reason` 与预期红线 message 匹配的比例 |
-
-### 6.4 Reference / Asset 装载指标
-
-| 指标 | 计算方式 |
-|------|---------|
-| `reference_load_rate` | 正确展开的 reference 数 / DSL 声明 reference 数 |
-| `asset_load_rate` | 正确注入的 asset 数 / DSL 声明 asset 数 |
-| `missing_reference_count` | DSL 声明但未成功展开的 reference 数 |
-| `missing_asset_count` | DSL 声明但未成功注入的 asset 数 |
-| `context_integrity_pass` | skill body、reference、asset 描述均完整时为 true |
-
-### 6.5 执行与适配器指标
-
-| 指标 | 计算方式 |
-|------|---------|
-| `execution_success_rate` | 成功返回 `ExecutionResult` 的用例 / 已激活用例 |
-| `adapter_success_rate` | 按 LangChain / SpringAI 分组统计的执行成功率 |
-| `latency_ms_avg` | 框架适配器调用平均耗时 |
-| `artifact_success_rate` | 期望产物（如 .docx）成功生成并存在的比例 |
-
-### 6.6 报告输出
-
-最终报告至少包含：
+**第二步 — 按需读取**：LLM 选中 skill 后，执行器才加载完整的 SKILL.md body（平均 11000 字符），组装为执行 prompt。
 
 ```
-1. Token 消耗对比表：按 skill 大小、阶段、适配器分组
-2. Skill 调用混淆矩阵：TP / TN / FP / FN
-3. 红线规则结果表：命中规则、拦截结果、reason 是否匹配
-4. Reference / Asset 装载完整性表
-5. LangChain / SpringAI 适配器执行成功率与耗时对比
+路由阶段: {name, description} × 21   →  LLM 选一个
+执行阶段: 完整 SKILL.md body          →  适配器执行
 ```
+
+## 5. 路由流程
+
+```
+用户输入: "帮我生成一份 Word 报告"
+    │
+    ├─ 1. extract_fields_from_query()  正则预提取 filename/template_name
+    │
+    ├─ 2. _build_system_prompt()       构建 skills_catalog [{name, desc}, ...]
+    │
+    ├─ 3. OpenAI-compatible API 调用   temperature=0, response_format=json_object
+    │      返回: {should_call, skill_name, confidence, reason, fields}
+    │
+    ├─ 4. validate_llm_decision_payload()  校验 should_call/bool, skill_name 存在性
+    │
+    └─ 5. SkillExecutor.execute()      构建 prompt → 调 adapter
+```
+
+## 6. 路由准确度评估（混淆矩阵）
+
+LLM 路由的准确性通过混淆矩阵量化，替代原来的本地关键词/红线规则校验：
+
+| 类型 | 含义 | 示例 |
+|------|------|------|
+| **TP** | 期望激活某 skill，LLM 正确选中 | "生成 word 报告" → document-generator ✅ |
+| **TN** | 期望不激活，LLM 正确拒绝 | "今天天气" → should_call=false ✅ |
+| **FP** | 期望不激活，LLM 误激活 | "写代码" → 误选 code-reviewer |
+| **FN** | 期望激活，LLM 漏激活 | "生成报告" → should_call=false |
+
+指标计算公式：
+
+```
+Accuracy  = (TP + TN) / (TP + TN + FP + FN)
+Precision = TP / (TP + FP)
+Recall    = TP / (TP + FN)
+```
+
+## 7. 执行流程
+
+```
+SkillExecutor.execute(skill, user_query, fields)
+    │
+    ├─ _build_prompt():    组装
+    │     # Skill: {name}
+    │     ## Skill 描述
+    │     {description}
+    │     ## 用户请求
+    │     {user_query}
+    │     ## 结构化字段
+    │     {fields}
+    │     ## Skill 指令
+    │     {body}
+    │
+    ├─ adapter.execute()   调用适配器
+    │
+    └─ TokenTracker       记录 input/output/total token + overhead%
+```
+
+## 8. 适配器
+
+| 适配器 | 用途 | 调用方式 |
+|--------|------|---------|
+| OpenAICompatibleSkillAdapter | 将 prompt 发给 LLM 执行 | OpenAI-compatible Chat Completions API |
+| LangChainSkillAdapter | 委托 LangChain Runnable | runnable.invoke(payload) |
+| SpringAIHttpAdapter | HTTP POST 到 SpringAI 服务 | urllib.request |
+| WordDocumentSkillAdapter | 生成 .docx 文件 | python-docx |
+
+## 9. 量化指标体系
+
+每次 `pytest` 运行会自动输出测试汇总到 `test-results/` 目录；当测试中使用 `runtime_collector` / `get_runtime_collector()` 记录了数据时，同时输出量化报告。
+
+| 报告文件 | 内容 |
+|----------|------|
+| `test-report.json` / `.md` | 51 条测试 pass/fail/skip/error 明细 + 耗时 |
+| `quantitative-report.json` / `.md` | 混淆矩阵 (TP/TN/FP/FN) + Accuracy/Precision/Recall |
+| | Token 消耗 (min/max/avg/total) |
+| | 延迟 (min/max/avg/p50/p95) |
+| | 按 skill 分组：执行次数、平均 Token、平均延迟、成功率 |
+| | 按适配器分组：同上 |
+| | 逐次执行明细表 |
+
+当前量化指标只来自测试显式记录的路由和执行样本，不是线上全量遥测。Token 由 `TokenTracker` 使用字符数近似估算，不等同于供应商 API 返回的精确 token usage。
+
+## 10. 测试覆盖
+
+| 文件 | 条数 | 类型 |
+|------|------|------|
+| `test_skill_discovery.py` | 8 | 本地：解析、校验、多源覆盖 |
+| `test_skill_execution.py` | 6 | 本地：prompt 构建、token、异常兜底 |
+| `test_skill_adapters.py` | 8 | 本地+LLM：4 种适配器 |
+| `test_skill_boundary.py` | 7 | 本地：边界与鲁棒性 |
+| `test_skill_field_extraction.py` | 9 | 本地+LLM：正则提取、LLM 对比 |
+| `test_skill_llm_integration.py` | 13 | LLM：TP/TN/字段提取/schema 校验 |
+
+## 11. 当前真实链路与 mock 边界
+
+| 场景 | 真实部分 | mock / 兜底部分 |
+|------|----------|-----------------|
+| `scripts/chat_with_llm.py` | 真实 OpenAI-compatible LLM 对话 | 无 skill 路由和执行 |
+| `scripts/llm_skill_chat.py` | 真实 LLM 路由、真实 `skills/` Discovery | 使用 `CallableSkillAdapter("mock-adapter")`，只返回 `called:{skill.name}` |
+| `OpenAIChatSkillRouter.route()` | 真实 LLM 选择 skill + schema 校验 | 字段提取先用正则兜底，再合并 LLM fields |
+| `OpenAIChatSkillRouter.route_and_execute()` | 真实路由 + 真实 `SkillExecutor` | 执行是否真实取决于传入 adapter |
+| `WordDocumentSkillAdapter` | 真实生成 `.docx` 文件 | 文档内容是最小实现，不是业务模板渲染 |
+| `LangChainSkillAdapter` | 真实调用传入 runnable/callable | 测试中 runnable 是本地假对象 |
+| `SpringAIHttpAdapter` | 真实 HTTP POST 实现 | 当前测试只覆盖无效 endpoint 的失败路径 |
+| `OpenAICompatibleSkillAdapter` | 有 API_KEY 时真实调用 LLM 执行 prompt | 无 API_KEY 或供应商不可用时测试自动 skip |
+
+## 12. 已知待同步项
+
+- `docs/TEST_DIMENSIONS.md` 和 `docs/TEST_GAP_PLAN.md` 仍包含旧版 `SkillActivator`、`red_lines`、多轮会话和 72 条测试描述，已不符合当前源码。
+- `evals/skill_evaluator.py` 源文件已不存在，仅残留 `__pycache__`，不应作为当前能力依据。
+- 当前没有本地红线拦截模块；是否需要恢复“必填字段/多轮补全”能力，需要先确认业务规则。
+
