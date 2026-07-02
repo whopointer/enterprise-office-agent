@@ -12,7 +12,6 @@ if __package__ in {None, ""}:
     from _skill.execution import SkillExecutor, TokenTracker
     from _skill.metrics import MetricsCollector
     from _skill.middleware import SkillsMiddleware
-    from _skill.llm_router import LLMRouterResponseError, LLMSkillCallResult, LLMSkillDecision, OpenAIChatSkillRouter
     from _skill.parser import parse_skill_file
     from _skill.prompt import format_skills_prompt
     from _skill.models import (
@@ -40,7 +39,6 @@ else:
     from .execution import SkillExecutor, TokenTracker
     from .metrics import MetricsCollector
     from .middleware import SkillsMiddleware
-    from .llm_router import LLMRouterResponseError, LLMSkillCallResult, LLMSkillDecision, OpenAIChatSkillRouter
     from .parser import parse_skill_file
     from .prompt import format_skills_prompt
     from .models import (
@@ -70,9 +68,6 @@ __all__ = [
     "ExecutionMetrics",
     "ExecutionResult",
     "FileSkillDiscovery",
-    "LLMRouterResponseError",
-    "LLMSkillCallResult",
-    "LLMSkillDecision",
     "MatchResult",
     "MetricsCollector",
     "NoSkillMatched",
@@ -87,7 +82,6 @@ __all__ = [
     "SkillMetricsSpec",
     "SkillSource",
     "SkillsMiddleware",
-    "OpenAIChatSkillRouter",
     "TokenEstimate",
     "TokenMetrics",
     "TokenTracker",

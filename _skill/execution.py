@@ -108,10 +108,15 @@ class SkillExecutor:
             latency_ms=latency_ms,
         )
 
+        asset_paths = tuple(asset.resolved_path or asset.path for asset in context.assets)
+        artifact_path = _extract_artifact_path(output)
+        if artifact_path:
+            asset_paths = (*asset_paths, artifact_path)
+
         return ExecutionResult(
             output=output,
             metrics=metrics,
-            asset_paths=tuple(asset.resolved_path or asset.path for asset in context.assets),
+            asset_paths=asset_paths,
             context=context,
         )
 
@@ -197,3 +202,13 @@ class SkillExecutor:
                 lines.append(f"- missing_asset: {path}")
 
         return "\n".join(lines)
+
+
+def _extract_artifact_path(output: Any) -> str | None:
+    """从 adapter 输出中提取产物路径。"""
+    if not isinstance(output, dict):
+        return None
+    path = output.get("output_path") or output.get("artifact_path")
+    if path is None:
+        return None
+    return str(path)
