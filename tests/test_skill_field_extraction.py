@@ -98,16 +98,14 @@ def test_llm_extracts_filename_from_natural_language(tmp_path: Path) -> None:
     router = OpenAIChatSkillRouter(index)
     decision = _safe_route(router, "生成 quarterly.docx 的 word 报告")
 
-    # 正则先兜底
     regex_fields = extract_fields_from_query("生成 quarterly.docx 的 word 报告")
-    # LLM 可能额外提取字段
     combined = {**regex_fields, **decision.fields}
     assert "quarterly" in str(combined).lower() or decision.should_call
 
 
 @LLM_MARK
 def test_llm_vs_regex_field_extraction_comparison(tmp_path: Path) -> None:
-    """同一条 query 分别跑正则和 LLM，验证 LLM 至少不比正则差。"""
+    """同一条 query 分别跑正则和 LLM。"""
     index = FileSkillDiscovery(build_pipeline_test_skills(tmp_path)).discover()
     router = OpenAIChatSkillRouter(index)
 
@@ -115,22 +113,18 @@ def test_llm_vs_regex_field_extraction_comparison(tmp_path: Path) -> None:
     regex = extract_fields_from_query(query)
     decision = _safe_route(router, query)
 
-    # 正则提取
     assert regex["filename"] == "demo.docx"
     assert regex["template_name"] == "standard"
-
-    # LLM 也应该指向 document-generator
     assert decision.should_call is True
     assert decision.skill_name == "document-generator"
 
 
 @LLM_MARK
-def test_llm_reports_missing_fields_for_security_auditor(tmp_path: Path) -> None:
-    """LLM 应识别出 security-auditor 缺少所有红线字段并放入 missing_fields。"""
+def test_llm_reports_fields_for_code_review(tmp_path: Path) -> None:
+    """LLM 应识别 code-reviewer 请求并提取字段。"""
     index = FileSkillDiscovery(build_pipeline_test_skills(tmp_path)).discover()
     router = OpenAIChatSkillRouter(index)
-    decision = _safe_route(router, "帮我做一次安全审计")
+    decision = _safe_route(router, "帮我审查代码")
 
     assert decision.should_call is True
-    assert decision.skill_name == "security-auditor"
-    assert len(decision.missing_fields) >= 1
+    assert decision.skill_name == "code-reviewer"

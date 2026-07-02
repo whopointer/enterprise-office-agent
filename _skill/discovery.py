@@ -36,9 +36,6 @@ class FileSkillDiscovery:
 
         return SkillIndex(
             skills=skills,
-            ref_graph={name: skill.references for name, skill in skills.items()},
-            asset_map={name: skill.assets for name, skill in skills.items()},
-            redline_rules={name: skill.red_lines for name, skill in skills.items()},
             load_errors=tuple(errors),
         )
 

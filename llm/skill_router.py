@@ -1,4 +1,4 @@
-"""接入大模型的自然语言 skill 路由。"""
+"""接入大模型的自然语言 skill 路由 — 对齐官方格式（基于 description 选 skill）。"""
 
 from __future__ import annotations
 
@@ -12,8 +12,8 @@ from urllib.parse import urlparse
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from _skill.execution import SkillExecutor
-from _skill.models import ExecutionResult, MatchResult, RedLineRule, RedLineViolation, SkillAdapter, SkillIndex
+from core.executor import SkillExecutor
+from _skill.models import ExecutionResult, SkillAdapter, SkillDefinition, SkillIndex
 from .schema import validate_llm_decision_payload
 from agent.field_extractor import extract_fields_from_query
 
@@ -27,7 +27,6 @@ class LLMSkillDecision:
     confidence: float
     reason: str
     fields: dict[str, Any]
-    missing_fields: tuple[str, ...]
     raw_response: str
 
 
@@ -36,7 +35,6 @@ class LLMSkillCallResult:
     """大模型路由后，本地执行器的调用结果。"""
 
     decision: LLMSkillDecision
-    activation: MatchResult | RedLineViolation | None
     execution: ExecutionResult | None
 
 
@@ -91,62 +89,36 @@ class OpenAIChatSkillRouter:
         adapter: SkillAdapter,
         fields: dict[str, Any] | None = None,
     ) -> LLMSkillCallResult:
-        """让大模型选 skill，再由本地红线校验和执行器完成调用。"""
+        """让大模型选 skill，再由本地执行器完成调用。"""
         decision = self.route(user_query, fields=fields)
         if not decision.should_call or not decision.skill_name:
-            return LLMSkillCallResult(decision=decision, activation=None, execution=None)
+            return LLMSkillCallResult(decision=decision, execution=None)
 
         skill = self.index.get(decision.skill_name)
         if skill is None:
-            return LLMSkillCallResult(decision=decision, activation=None, execution=None)
+            return LLMSkillCallResult(decision=decision, execution=None)
 
         merged_fields = {**(fields or {}), **decision.fields}
-        violations = _check_red_lines(skill.red_lines, merged_fields)
-        if violations:
-            activation = RedLineViolation(
-                skill=skill,
-                violated_rules=tuple(violations),
-                reason="；".join(rule.message for rule in violations),
-                confidence=decision.confidence,
-            )
-            return LLMSkillCallResult(decision=decision, activation=activation, execution=None)
-
-        activation = MatchResult(
-            skill=skill,
-            confidence=decision.confidence,
-            redline_pass=True,
-            reason=decision.reason,
+        execution = SkillExecutor(self.index, adapter).execute(
+            skill, user_query=user_query, fields=merged_fields,
         )
-        execution = SkillExecutor(self.index, adapter).execute(activation, user_query=user_query, fields=merged_fields)
-        return LLMSkillCallResult(decision=decision, activation=activation, execution=execution)
+        return LLMSkillCallResult(decision=decision, execution=execution)
 
     def _build_system_prompt(self) -> str:
-        """构造只面向 skill 选择的系统提示。"""
-        catalog = []
-        for skill in self.index.list_skills():
-            catalog.append(
-                {
-                    "name": skill.name,
-                    "description": skill.description,
-                    "triggers": skill.triggers,
-                    "red_lines": [{"field": rule.field, "message": rule.message} for rule in skill.red_lines],
-                    "references": list(skill.references),
-                    "assets": [
-                        {"path": asset.path, "type": asset.type, "description": asset.description}
-                        for asset in skill.assets
-                    ],
-                }
-            )
+        """构造只面向 skill 选择的系统提示 — 只包含 name + description（渐进披露）。"""
+        catalog = [
+            {"name": skill.name, "description": skill.description}
+            for skill in self.index.list_skills()
+        ]
 
         return (
             "你是 skill 路由器。根据用户请求和 known_fields，从 skills_catalog 中选择最匹配的 skill。\n"
-            "如果用户意图匹配某个 skill，即使缺少红线字段，也要选择该 skill，并把缺失字段放入 missing_fields；"
-            "本地系统会负责红线拦截。\n"
+            "如果用户意图匹配某个 skill，即使缺少参数，也要选择该 skill。\n"
             "如果没有任何 skill 适合，should_call=false 且 skill_name=null。\n"
             "只输出 JSON，不要输出 Markdown。\n"
             "JSON schema: {"
             '"should_call": boolean, "skill_name": string|null, "confidence": number, '
-            '"reason": string, "fields": object, "missing_fields": string[]'
+            '"reason": string, "fields": object'
             "}。\n"
             f"skills_catalog={json.dumps(catalog, ensure_ascii=False)}"
         )
@@ -165,19 +137,8 @@ class OpenAIChatSkillRouter:
             confidence=validated["confidence"],
             reason=validated["reason"],
             fields={**fallback_fields, **validated["fields"]},
-            missing_fields=validated["missing_fields"],
             raw_response=raw,
         )
-
-
-def _check_red_lines(red_lines: tuple[RedLineRule, ...], fields: dict[str, Any]) -> list[RedLineRule]:
-    """检查大模型选中 skill 后是否满足本地红线。"""
-    violations: list[RedLineRule] = []
-    for rule in red_lines:
-        value = fields.get(rule.field)
-        if value is None or value == "" or value == [] or value == {}:
-            violations.append(rule)
-    return violations
 
 
 def _build_openai_client() -> OpenAI:

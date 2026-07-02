@@ -1,19 +1,10 @@
-"""Skill 系统测试共享夹具。提供两组 skill：
-
-1. `build_pipeline_test_skills` — 带完整 DSL（triggers / red_lines / references / assets），
-   用于测试 Discovery / Activation / Execution / Metrics 等本地 pipeline 阶段。
-2. `build_llm_test_skills` — 从真实 skills/ 目录子集的副本构造，用于 LLM 路由测试。
-"""
+"""Skill 系统测试共享夹具 — 对齐官方 SKILL.md 格式（name + description + allowed-tools + body）。"""
 
 from __future__ import annotations
 
 from pathlib import Path
 import shutil
 
-
-# ---------------------------------------------------------------------------
-# 工具函数
-# ---------------------------------------------------------------------------
 
 def write_skill(root: Path, name: str, frontmatter: str, body: str) -> Path:
     """写入一个 SKILL.md 到指定目录。"""
@@ -24,175 +15,71 @@ def write_skill(root: Path, name: str, frontmatter: str, body: str) -> Path:
     return skill_file
 
 
-# ---------------------------------------------------------------------------
-# 夹具 A：带完整 DSL schema 的测试 skill（pipeline 阶段测试用）
-# ---------------------------------------------------------------------------
-
 def build_pipeline_test_skills(tmp_path: Path) -> Path:
-    """构造 5 个具备完整 YAML DSL 的 skill，模拟真实 agent 能力。
+    """构造 4 个符合官方格式的 skill，覆盖不同特征。
 
-    技能清单：
-    - document-generator   : Word 文档生成，2 个红线字段 + 1 个 asset
-    - skill-index          : 搜寻已注册 skill，1 个 reference
-    - security-auditor     : 安全检查，3 个红线字段（多轮会话测试用）
-    - simple-echo          : 最简 skill，无红线和引用（基线用）
-    - pattern-matcher      : 用正则 pattern 而非关键词触发
+    - document-generator : 文档生成（有 allowed-tools）
+    - code-reviewer       : 代码审查（无 allowed-tools，默认空）
+    - simple-echo         : 最简 skill（回显）
+    - data-analyzer       : 数据分析（有 license + compatibility）
     """
     skills_dir = tmp_path / "skills"
 
-    # --- document-generator ---
     write_skill(
         skills_dir,
         "document-generator",
         """
 name: document-generator
-description: 生成 Word 文档报告，根据指定模板填充内容并输出 docx 文件
-triggers:
-  keywords: [word, docx, document, 文档, 报告, 生成报告]
-  patterns: ["生成.*(?:报告|文档|docx|word)"]
-red_lines:
-  - field: filename
-    message: 缺少输出文件名参数
-  - field: title
-    message: 缺少报告标题
-references: []
-assets:
-  - path: assets/report-template.docx
-    type: word_document
-    description: 默认报告模板
-metrics:
-  expected_skill: document-generator
-  expected_activation: true
-  expected_assets: [assets/report-template.docx]
-token_estimate:
-  system_prompt: 120
-  per_reference: 0
-  per_asset: 40
+description: 生成 Word 文档报告，根据指定模板填充内容并输出 docx 文件。触发条件：用户要求生成文档、报告、合同、证书等。
+allowed-tools: [Read, Bash, Write]
 """,
-        "# Document Generator\n根据指定模板和字段生成 Word 报告。",
+        "# Document Generator\n\n根据指定模板和字段生成 Word 报告。\n\n## 使用流程\n1. 确认用户需要的文件名和标题\n2. 读取 assets/report-template.docx 作为模板\n3. 运行 scripts/generate.py 生成文档",
     )
-    asset_dir = skills_dir / "document-generator" / "assets"
-    asset_dir.mkdir(parents=True, exist_ok=True)
-    (asset_dir / "report-template.docx").write_bytes(b"binary docx template content")
 
-    # --- skill-index ---
     write_skill(
         skills_dir,
-        "skill-index",
+        "code-reviewer",
         """
-name: skill-index
-description: 扫描并列出当前系统中所有已注册的 skill，支持关键词过滤
-triggers:
-  keywords: [skill, 技能, 搜索skill, 列出skill, skill列表, 注册列表]
-  patterns: ["搜索.*skill", "列出.*skill", "查看.*技能"]
-red_lines: []
-references:
-  - document-generator
-assets: []
-metrics:
-  expected_skill: skill-index
-  expected_activation: true
-  expected_references: [document-generator]
-token_estimate:
-  system_prompt: 100
-  per_reference: 50
-  per_asset: 0
+name: code-reviewer
+description: 对指定代码项目执行代码审查，检查常见问题并生成审查报告。支持 Python、JavaScript、Go 等语言。
 """,
-        "# Skill Index\n列出所有已注册 skill，并引用 document-generator 作为示例。",
+        "# Code Reviewer\n\n对代码项目执行审查，输出问题列表和修复建议。\n\n## 使用流程\n1. 确认审查范围（目录或文件路径）\n2. 读取代码文件\n3. 输出 markdown 格式的审查报告",
     )
 
-    # --- security-auditor ---
-    write_skill(
-        skills_dir,
-        "security-auditor",
-        """
-name: security-auditor
-description: 对指定代码项目执行安全审查，检查常见漏洞并生成审计报告
-triggers:
-  keywords: [security, audit, 安全, 审计, 漏洞, 安全检查, 代码审查]
-  patterns: ["安全.*(?:审查|审计|检查|扫描)"]
-red_lines:
-  - field: scope
-    message: 缺少审查范围（目录或文件路径）
-  - field: language
-    message: 缺少目标编程语言
-  - field: output_format
-    message: 缺少输出格式（markdown/json/html）
-references: []
-assets: []
-metrics:
-  expected_skill: security-auditor
-  expected_activation: true
-token_estimate:
-  system_prompt: 150
-  per_reference: 0
-  per_asset: 0
-""",
-        "# Security Auditor\n对代码项目执行安全审查，输出漏洞列表和修复建议。",
-    )
-
-    # --- simple-echo ---
     write_skill(
         skills_dir,
         "simple-echo",
         """
 name: simple-echo
-description: 回显用户输入，用于验证基础 skill 路由和执行管线是否正常
-triggers:
-  keywords: [echo, 回显, ping, 测试echo]
-  patterns: ["echo.*test", "回显.*测试"]
-red_lines: []
-references: []
-assets: []
-metrics:
-  expected_skill: simple-echo
-  expected_activation: true
-token_estimate:
-  system_prompt: 10
-  per_reference: 0
-  per_asset: 0
+description: 回显用户输入，用于验证基础 skill 路由和执行管线是否正常。触发条件：用户发送 ping、echo、测试连通性等请求。
+allowed-tools: []
 """,
-        "# Simple Echo\n回显用户输入内容。",
+        "# Simple Echo\n\n回显用户输入内容。",
     )
 
-    # --- pattern-matcher ---
     write_skill(
         skills_dir,
-        "pattern-matcher",
+        "data-analyzer",
         """
-name: pattern-matcher
-description: 演示纯正则模式匹配，不依赖关键词，只用 pattern 触发
-triggers:
-  keywords: []
-  patterns: ["创建.*表格", "生成.*表格", "绘制.*图表"]
-red_lines: []
-references: []
-assets: []
-metrics:
-  expected_skill: pattern-matcher
-  expected_activation: true
-token_estimate:
-  system_prompt: 50
-  per_reference: 0
-  per_asset: 0
+name: data-analyzer
+description: 分析 CSV 或 JSON 数据文件，生成统计摘要和可视化图表。触发条件：用户上传数据文件或要求进行数据分析。
+allowed-tools: [Read, Bash, Write]
+license: MIT
+compatibility: python>=3.10
 """,
-        "# Pattern Matcher\n使用正则模式匹配用户意图。",
+        "# Data Analyzer\n\n读取数据文件，计算统计指标并生成图表。\n\n## 使用流程\n1. 读取用户指定的数据文件\n2. 运行 scripts/analyze.py 进行分析\n3. 输出分析报告",
     )
 
     return skills_dir
 
 
-# ---------------------------------------------------------------------------
-# 夹具 B：从真实 skills/ 复制子集（LLM 路由测试用）
-# ---------------------------------------------------------------------------
-
-# 选择了 5 个具有不同特征的 skill：有 references、有 assets、有触发描述、无触发描述
+# 从真实 skills/ 复制子集用于 LLM 路由测试
 LLM_TEST_SKILL_NAMES = [
-    "word-report-generator-1.0.0",   # 文档生成，有 references
-    "pdf",                            # PDF 处理，有 assets，无 references
-    "security-best-practices",        # 安全审查，大量 references，有严格 trigger 条件
-    "strict-trigger-lab",             # 严格条件触发，用于测试拒绝场景
-    "render-deploy",                  # 部署，大量 assets
+    "word-report-generator-1.0.0",
+    "pdf",
+    "security-best-practices",
+    "strict-trigger-lab",
+    "render-deploy",
 ]
 
 

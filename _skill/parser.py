@@ -1,4 +1,4 @@
-"""SKILL.md DSL 解析逻辑。"""
+"""SKILL.md DSL 解析逻辑 — 对齐官方格式（name + description + allowed-tools + body）。"""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import re
 import yaml
 
 from .constants import MAX_SKILL_DESCRIPTION_LENGTH, MAX_SKILL_FILE_SIZE, MAX_SKILL_NAME_LENGTH
-from .models import RedLineRule, SkillAsset, SkillDefinition, SkillMetricsSpec, TokenEstimate
+from .models import SkillDefinition
 from .utils import normalize_metadata, normalize_string_list
 
 
@@ -31,28 +31,21 @@ def parse_skill_file(skill_file: str | Path) -> SkillDefinition:
     name = str(frontmatter.get("name", "")).strip()
     description = str(frontmatter.get("description", "")).strip()
     _validate_skill_name(name)
+
     if not description:
         raise ValueError("缺少 description")
     if len(description) > MAX_SKILL_DESCRIPTION_LENGTH:
         description = description[:MAX_SKILL_DESCRIPTION_LENGTH]
 
-    skill_dir = path.parent
-    triggers = frontmatter.get("triggers", {})
-    if not isinstance(triggers, dict):
-        triggers = {}
+    allowed_tools = normalize_string_list(frontmatter.get("allowed-tools"))
 
     return SkillDefinition(
         name=name,
         description=description,
         path=str(path),
-        directory=str(skill_dir),
+        directory=str(path.parent),
         body=body.strip(),
-        triggers=triggers,
-        red_lines=_parse_red_lines(frontmatter.get("red_lines")),
-        references=normalize_string_list(frontmatter.get("references")),
-        assets=_parse_assets(frontmatter.get("assets"), skill_dir),
-        metrics=_parse_metrics(frontmatter.get("metrics")),
-        token_estimate=_parse_token_estimate(frontmatter.get("token_estimate")),
+        allowed_tools=allowed_tools,
         metadata=normalize_metadata(frontmatter.get("metadata")),
         license=str(frontmatter.get("license", "")).strip() or None,
         compatibility=str(frontmatter.get("compatibility", "")).strip() or None,
@@ -71,92 +64,6 @@ def _split_frontmatter(content: str) -> tuple[dict[str, Any], str] | None:
     if not isinstance(parsed, dict):
         raise ValueError("frontmatter 必须是 YAML mapping")
     return parsed, body
-
-
-def _parse_red_lines(value: Any) -> tuple[RedLineRule, ...]:
-    """解析红线 DSL。"""
-    rules: list[RedLineRule] = []
-    if not value:
-        return ()
-
-    if isinstance(value, dict) and "required_fields" in value:
-        for field_name in normalize_string_list(value.get("required_fields")):
-            rules.append(RedLineRule(field=field_name, message=f"缺少必填字段: {field_name}"))
-        return tuple(rules)
-
-    if not isinstance(value, list):
-        return ()
-
-    for item in value:
-        if not isinstance(item, dict):
-            continue
-        field_name = str(item.get("field", "")).strip()
-        if not field_name:
-            continue
-        message = str(item.get("message", "")).strip() or f"缺少必填字段: {field_name}"
-        rules.append(RedLineRule(field=field_name, message=message))
-    return tuple(rules)
-
-
-def _parse_assets(value: Any, skill_dir: Path) -> tuple[SkillAsset, ...]:
-    """解析 asset DSL 并解析本地绝对路径。"""
-    assets: list[SkillAsset] = []
-    if not value:
-        return ()
-
-    raw_assets = value if isinstance(value, list) else [value]
-    for item in raw_assets:
-        if isinstance(item, str):
-            asset_path = item.strip()
-            asset_type = "file"
-            description = ""
-        elif isinstance(item, dict):
-            asset_path = str(item.get("path", "")).strip()
-            asset_type = str(item.get("type", "file")).strip() or "file"
-            description = str(item.get("description", "")).strip()
-        else:
-            continue
-
-        if not asset_path:
-            continue
-
-        resolved = (skill_dir / asset_path).resolve()
-        assets.append(
-            SkillAsset(
-                path=asset_path,
-                type=asset_type,
-                description=description,
-                resolved_path=str(resolved),
-                exists=resolved.exists(),
-            )
-        )
-    return tuple(assets)
-
-
-def _parse_metrics(value: Any) -> SkillMetricsSpec:
-    """解析量化评估期望。"""
-    if not isinstance(value, dict):
-        return SkillMetricsSpec()
-    expected_activation = value.get("expected_activation")
-    if not isinstance(expected_activation, bool):
-        expected_activation = None
-    return SkillMetricsSpec(
-        expected_skill=str(value.get("expected_skill", "")).strip() or None,
-        expected_activation=expected_activation,
-        expected_references=normalize_string_list(value.get("expected_references")),
-        expected_assets=normalize_string_list(value.get("expected_assets")),
-    )
-
-
-def _parse_token_estimate(value: Any) -> TokenEstimate:
-    """解析 token 估算配置。"""
-    if not isinstance(value, dict):
-        return TokenEstimate()
-    return TokenEstimate(
-        system_prompt=max(0, int(value.get("system_prompt", 0) or 0)),
-        per_reference=max(0, int(value.get("per_reference", 0) or 0)),
-        per_asset=max(0, int(value.get("per_asset", 0) or 0)),
-    )
 
 
 def _validate_skill_name(name: str) -> None:

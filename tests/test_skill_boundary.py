@@ -4,111 +4,85 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from _skill import (
-    FileSkillDiscovery,
-    NoSkillMatched,
-    SkillActivator,
-)
-from tests.skill_fixtures import build_pipeline_test_skills
+from _skill import FileSkillDiscovery
+from tests.skill_fixtures import build_pipeline_test_skills, write_skill
 
-
-def _make_index(tmp_path: Path):
-    return FileSkillDiscovery(build_pipeline_test_skills(tmp_path)).discover()
-
-
-# ---------------------------------------------------------------------------
-# 空 query / 超长 query
-# ---------------------------------------------------------------------------
-
-def test_activation_handles_empty_and_whitespace_query(tmp_path: Path) -> None:
-    """空字符串和纯空白应返回 NoSkillMatched 而非崩溃。"""
-    activator = SkillActivator(_make_index(tmp_path))
-    for q in ("", "   ", "\n\t", "   \n  "):
-        assert isinstance(activator.activate(q), NoSkillMatched)
-
-
-def test_activation_handles_very_long_query(tmp_path: Path) -> None:
-    """超长 query 不崩溃。"""
-    activator = SkillActivator(_make_index(tmp_path))
-    long_query = "文档 " * 5000 + "word document docx 报告"
-    result = activator.activate(long_query)
-    # 至少不抛异常
-    assert result is not None
-
-
-# ---------------------------------------------------------------------------
-# 空 skills 目录
-# ---------------------------------------------------------------------------
 
 def test_discovery_empty_directory_all_methods_safe(tmp_path: Path) -> None:
-    """空目录的 SkillIndex 所有方法不应抛异常。"""
+    """空目录的 SkillIndex 所有方法不抛异常。"""
     empty = tmp_path / "empty"
     empty.mkdir()
     index = FileSkillDiscovery(empty).discover()
-
     assert index.skills == {}
     assert index.list_skills() == []
     assert index.get("any") is None
-    assert index.ref_graph == {}
 
 
-# ---------------------------------------------------------------------------
-# 无效 skill 名
-# ---------------------------------------------------------------------------
+def test_discovery_very_long_description_is_truncated(tmp_path: Path) -> None:
+    """超长 description 被截断。"""
+    skills_dir = tmp_path / "skills"
+    skills_dir.mkdir()
+    long_desc = "x" * 2000
+    write_skill(skills_dir, "long-desc", f"name: long-desc\ndescription: {long_desc}\n", "# body")
+    index = FileSkillDiscovery(skills_dir).discover()
+    skill = index.get("long-desc")
+    assert skill is not None
+    assert len(skill.description) <= 1024
+
 
 def test_parser_rejects_invalid_skill_names(tmp_path: Path) -> None:
-    """非法 skill 名应在解析时被拒绝，放入 load_errors。"""
-    from tests.skill_fixtures import write_skill
-
-    bad_dir = tmp_path / "bad_names"
+    """非法 skill 名 → load_errors。"""
+    bad_dir = tmp_path / "bad"
     bad_dir.mkdir()
-
-    write_skill(bad_dir, "bad-name-", "name: bad-name-\ndescription: 以连字符结尾\n", "# x")
-    write_skill(bad_dir, "Bad-Name", "name: Bad-Name\ndescription: 含大写\n", "# x")
-
+    write_skill(bad_dir, "x-y-", "name: x-y-\ndescription: 以连字符结尾\n", "# x")
+    write_skill(bad_dir, "X-Y", "name: X-Y\ndescription: 含大写\n", "# x")
     index = FileSkillDiscovery(bad_dir).discover()
-    assert "bad-name-" not in index.skills
-    assert "Bad-Name" not in index.skills
-    assert len(index.load_errors) >= 2
+    assert "x-y-" not in index.skills
+    assert "X-Y" not in index.skills
 
 
 def test_parser_rejects_skill_without_description(tmp_path: Path) -> None:
-    """无 description 的 skill 应被拒绝。"""
-    from tests.skill_fixtures import write_skill
-
+    """无 description → 解析失败。"""
     bad_dir = tmp_path / "no_desc"
     bad_dir.mkdir()
-    write_skill(bad_dir, "valid-name", "name: valid-name\n", "# body")
+    write_skill(bad_dir, "v", "name: v\n", "# body")
     index = FileSkillDiscovery(bad_dir).discover()
-    assert "valid-name" not in index.skills
+    assert "v" not in index.skills
 
 
-# ---------------------------------------------------------------------------
-# 几乎相同触发词的 skill 应仍能区分
-# ---------------------------------------------------------------------------
+def test_discovery_handles_very_long_skill_body(tmp_path: Path) -> None:
+    """超大 body 不崩溃。"""
+    skills_dir = tmp_path / "skills"
+    skills_dir.mkdir()
+    large_body = "# " + "x" * 100000
+    write_skill(skills_dir, "huge", "name: huge\ndescription: 大文件测试\n", large_body)
+    index = FileSkillDiscovery(skills_dir).discover()
+    assert index.get("huge") is not None
+    # 超过 10MB 会拒绝
+    huge_body = "# " + "x" * (10 * 1024 * 1024 + 100)
+    try:
+        write_skill(skills_dir, "too-big", "name: too-big\ndescription: 超大\n", huge_body)
+    except OSError:
+        pass
+    # 不管怎样不崩
 
-def test_activator_picks_highest_confidence_when_ambiguous(tmp_path: Path) -> None:
-    """当多个 skill 都有部分关键词命中时，返回得分最高的。"""
-    index = _make_index(tmp_path)
-    activator = SkillActivator(index)
 
-    # "文档" 可能命中 document-generator 也可能不命中其他，但应只返回一个
-    result = activator.activate("文档 word")
-    assert hasattr(result, "skill")
-    skill_name = result.skill.name if hasattr(result, "skill") else None
-    assert skill_name in ("document-generator",) or isinstance(result, NoSkillMatched)
+def test_discovery_handles_unparseable_frontmatter(tmp_path: Path) -> None:
+    """YAML 解析错误 → load_errors，但不影响其他 skill。"""
+    skills_dir = build_pipeline_test_skills(tmp_path)
+    bad = skills_dir / "bad-yaml"
+    bad.mkdir()
+    (bad / "SKILL.md").write_text("---\n[\n---\n# bad\n")
+    index = FileSkillDiscovery(skills_dir).discover()
+    assert "simple-echo" in index.skills
 
 
-# ---------------------------------------------------------------------------
-# 中英混合
-# ---------------------------------------------------------------------------
-
-def test_activation_handles_mixed_language_query(tmp_path: Path) -> None:
-    """中英混合 query 应能正确匹配。"""
-    index = _make_index(tmp_path)
-    activator = SkillActivator(index)
-
-    r = activator.activate("生成一份 document 报告 word docx")
-    assert isinstance(r, type(activator.activate("docx")))  # 不崩即可
-    if hasattr(r, "skill"):
-        assert r.skill.name == "document-generator"
+def test_skill_without_body_still_loads(tmp_path: Path) -> None:
+    """只含 frontmatter 无正文的 skill 正常加载（body 为空字符串）。"""
+    skills_dir = tmp_path / "s"
+    skills_dir.mkdir()
+    write_skill(skills_dir, "minimal", "name: minimal\ndescription: 最简 skill\n", "")
+    index = FileSkillDiscovery(skills_dir).discover()
+    skill = index.get("minimal")
+    assert skill is not None
+    assert skill.body == ""

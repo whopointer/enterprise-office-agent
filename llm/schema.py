@@ -40,10 +40,6 @@ def validate_llm_decision_payload(data: Any, index: SkillIndex) -> dict[str, Any
     if not isinstance(fields, dict):
         raise LLMDecisionSchemaError("fields 必须是 object")
 
-    missing_fields = data.get("missing_fields", [])
-    if not isinstance(missing_fields, list):
-        raise LLMDecisionSchemaError("missing_fields 必须是 array")
-
     reason = data.get("reason", "")
     if not isinstance(reason, str):
         reason = str(reason)
@@ -54,5 +50,4 @@ def validate_llm_decision_payload(data: Any, index: SkillIndex) -> dict[str, Any
         "confidence": confidence,
         "reason": reason.strip(),
         "fields": fields,
-        "missing_fields": tuple(str(item) for item in missing_fields),
     }
