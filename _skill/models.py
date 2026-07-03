@@ -48,6 +48,7 @@ class TokenMetrics:
     output_tokens: int
     total_tokens: int
     overhead_pct: float | None = None
+    source: str = "estimated"
 
 
 @dataclass(frozen=True)

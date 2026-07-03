@@ -34,7 +34,9 @@
 | TN — 文件上传 query 拒绝 | `test_llm_rejects_irrelevant_file_upload_query` | 同上 |
 | TN — 空 query 拒绝 | `test_llm_rejects_empty_query` | 同上 |
 
-**混淆矩阵**：7 条路由评测自动计算 TP/TN/FP/FN，落盘到 `quantitative-report.md`。
+**pytest 混淆矩阵**：7 条 LLM 集成用例自动计算 TP/TN/FP/FN，落盘到 `quantitative-report.md`。该报告只代表 pytest 运行时显式记录的小样本，不等同于大样本路由评测。
+
+**大样本路由评测**：120 条真实 LLM 路由问答集由 `python3 scripts/run_routing_eval.py --output-dir test-results` 生成，落盘到 `routing-eval-report.md`，用于判断整体路由可用性。
 
 ### 维度 B — 字段提取质量（9 条）
 
@@ -74,8 +76,8 @@
 
 | 适配器 | 测试 | 文件 |
 |--------|------|------|
-| `WordDocumentSkillAdapter` | 真实生成 .docx + 验证文件存在 | `test_skill_adapters.py` |
-| `WordDocumentSkillAdapter` | 默认文件名 skill-output.docx | 同上 |
+| `TestWordDocumentAdapter` | 测试 fake，真实生成 .docx + 验证文件存在 | `test_skill_adapters.py` |
+| `TestWordDocumentAdapter` | 默认文件名 skill-output.docx | 同上 |
 | `OpenAICompatibleSkillAdapter` | 真实调大模型 + 返回内容 > 0 | 同上 |
 | `LangChainSkillAdapter` | invoke() 方法 runner | 同上 |
 | `LangChainSkillAdapter` | callable runner（退到 __call__） | 同上 |
@@ -114,13 +116,15 @@
 
 | 报告 | 内容 |
 |------|------|
-| `test-report.json/.md` | 51 条 pass/fail 明细 + 耗时 |
-| `quantitative-report.json/.md` | 混淆矩阵 (TP/TN/FP/FN) + Accuracy/Precision/Recall |
+| `test-report.json/.md` | pytest pass/fail 明细 + 耗时；若已存在额外评测报告，会展示摘要入口 |
+| `quantitative-report.json/.md` | pytest 运行时样本的混淆矩阵 (TP/TN/FP/FN) + Accuracy/Precision/Recall |
 | | Token 消耗 (min/max/avg/total) |
 | | 延迟 (min/max/avg/p50/p95) |
 | | 按 skill 分组：执行次数 / 平均 Token / 平均延迟 / 成功率 |
 | | 按 adapter 分组：执行次数 / 平均 Token / 平均延迟 / 成功率 |
 | | 逐次执行明细表 |
+| `routing-eval-report.json/.md` | 120 条真实 LLM 大样本路由评测；按类别、难度、混淆对统计 |
+| `skill-quality-summary.json/.md` | skill 盘点、prompt 预算、字段抽取质量 |
 
 ### 维度 I — 问答集测试（新增，待实现）
 

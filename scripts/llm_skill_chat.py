@@ -8,7 +8,7 @@ import json
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from _skill import CallableSkillAdapter, FileSkillDiscovery, MatchResult, RedLineViolation
+from _skill import CallableSkillAdapter, FileSkillDiscovery
 from llm.skill_router import OpenAIChatSkillRouter, load_skill_env
 
 
@@ -38,9 +38,8 @@ def main() -> None:
             "confidence": result.decision.confidence,
             "reason": result.decision.reason,
             "fields": result.decision.fields,
-            "missing_fields": list(result.decision.missing_fields),
         },
-        "activation": _format_activation(result.activation),
+        "routing_token_metrics": _format_token_metrics(router.last_token_metrics()),
         "execution": _format_execution(result.execution),
     }
     print(json.dumps(payload, ensure_ascii=False, indent=2))
@@ -57,25 +56,6 @@ def _parse_fields(raw_fields: list[str]) -> dict[str, str]:
     return fields
 
 
-def _format_activation(activation: MatchResult | RedLineViolation | None) -> dict[str, object] | None:
-    """格式化本地激活/红线结果。"""
-    if activation is None:
-        return None
-    if isinstance(activation, RedLineViolation):
-        return {
-            "type": "RedLineViolation",
-            "skill_name": activation.skill.name,
-            "reason": activation.reason,
-            "violated_fields": [rule.field for rule in activation.violated_rules],
-        }
-    return {
-        "type": "MatchResult",
-        "skill_name": activation.skill.name,
-        "confidence": activation.confidence,
-        "redline_pass": activation.redline_pass,
-    }
-
-
 def _format_execution(execution: object | None) -> dict[str, object] | None:
     """格式化执行结果。"""
     if execution is None:
@@ -84,10 +64,27 @@ def _format_execution(execution: object | None) -> dict[str, object] | None:
         "output": execution.output,
         "execution_success": execution.metrics.execution_success,
         "adapter_name": execution.metrics.adapter_name,
-        "reference_load_rate": execution.metrics.reference_load_rate,
-        "asset_load_rate": execution.metrics.asset_load_rate,
-        "context_integrity_pass": execution.metrics.context_integrity_pass,
-        "asset_paths": list(execution.asset_paths),
+        "latency_ms": execution.metrics.latency_ms,
+        "token_metrics": {
+            "input_tokens": execution.metrics.token_metrics.input_tokens,
+            "output_tokens": execution.metrics.token_metrics.output_tokens,
+            "total_tokens": execution.metrics.token_metrics.total_tokens,
+            "overhead_pct": execution.metrics.token_metrics.overhead_pct,
+            "source": execution.metrics.token_metrics.source,
+        },
+    }
+
+
+def _format_token_metrics(metrics: object | None) -> dict[str, object] | None:
+    """格式化 token 指标。"""
+    if metrics is None:
+        return None
+    return {
+        "input_tokens": metrics.input_tokens,
+        "output_tokens": metrics.output_tokens,
+        "total_tokens": metrics.total_tokens,
+        "overhead_pct": metrics.overhead_pct,
+        "source": metrics.source,
     }
 
 

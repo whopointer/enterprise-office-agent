@@ -157,7 +157,8 @@ SkillExecutor.execute(skill, user_query, fields)
 | OpenAICompatibleSkillAdapter | 将 prompt 发给 LLM 执行 | OpenAI-compatible Chat Completions API |
 | LangChainSkillAdapter | 委托 LangChain Runnable | runnable.invoke(payload) |
 | SpringAIHttpAdapter | HTTP POST 到 SpringAI 服务 | urllib.request |
-| WordDocumentSkillAdapter | 生成 .docx 文件 | python-docx |
+
+测试中需要真实落盘 `.docx` 时，使用 `tests/fakes/TestWordDocumentAdapter`。它是测试 fake，不属于生产适配器层。
 
 ## 9. 量化指标体系
 
@@ -165,15 +166,17 @@ SkillExecutor.execute(skill, user_query, fields)
 
 | 报告文件 | 内容 |
 |----------|------|
-| `test-report.json` / `.md` | 51 条测试 pass/fail/skip/error 明细 + 耗时 |
-| `quantitative-report.json` / `.md` | 混淆矩阵 (TP/TN/FP/FN) + Accuracy/Precision/Recall |
+| `test-report.json` / `.md` | pytest 测试 pass/fail/skip/error 明细 + 耗时；若已存在大样本评测报告，会展示摘要入口 |
+| `quantitative-report.json` / `.md` | pytest 运行时样本的混淆矩阵 (TP/TN/FP/FN) + Accuracy/Precision/Recall |
 | | Token 消耗 (min/max/avg/total) |
 | | 延迟 (min/max/avg/p50/p95) |
 | | 按 skill 分组：执行次数、平均 Token、平均延迟、成功率 |
 | | 按适配器分组：同上 |
 | | 逐次执行明细表 |
+| `routing-eval-report.json` / `.md` | 真实 LLM 大样本路由评测，当前数据集 120 条，包含按类别、难度、混淆对统计 |
+| `skill-quality-summary.json` / `.md` | skill 盘点、prompt token 预算、字段抽取质量摘要 |
 
-当前量化指标只来自测试显式记录的路由和执行样本，不是线上全量遥测。Token 由 `TokenTracker` 使用字符数近似估算，不等同于供应商 API 返回的精确 token usage。
+`quantitative-report.*` 只来自 pytest 显式记录的路由和执行样本，不是线上全量遥测，也不等同于 120 条大样本路由评测。大样本路由准确率以 `routing-eval-report.*` 为准。Token 优先使用供应商 API 返回的真实 usage；拿不到 usage 时，`TokenTracker` 回退到字符数近似估算。
 
 ## 10. 测试覆盖
 
@@ -194,7 +197,7 @@ SkillExecutor.execute(skill, user_query, fields)
 | `scripts/llm_skill_chat.py` | 真实 LLM 路由、真实 `skills/` Discovery | 使用 `CallableSkillAdapter("mock-adapter")`，只返回 `called:{skill.name}` |
 | `OpenAIChatSkillRouter.route()` | 真实 LLM 选择 skill + schema 校验 | 字段提取先用正则兜底，再合并 LLM fields |
 | `OpenAIChatSkillRouter.route_and_execute()` | 真实路由 + 真实 `SkillExecutor` | 执行是否真实取决于传入 adapter |
-| `WordDocumentSkillAdapter` | 真实生成 `.docx` 文件 | 文档内容是最小实现，不是业务模板渲染 |
+| `TestWordDocumentAdapter` | 测试 fake，真实生成 `.docx` 文件 | 位于 `tests/fakes/`，文档内容是最小实现，不是业务模板渲染 |
 | `LangChainSkillAdapter` | 真实调用传入 runnable/callable | 测试中 runnable 是本地假对象 |
 | `SpringAIHttpAdapter` | 真实 HTTP POST 实现 | 当前测试只覆盖无效 endpoint 的失败路径 |
 | `OpenAICompatibleSkillAdapter` | 有 API_KEY 时真实调用 LLM 执行 prompt | 无 API_KEY 或供应商不可用时测试自动 skip |
@@ -204,4 +207,3 @@ SkillExecutor.execute(skill, user_query, fields)
 - `docs/TEST_DIMENSIONS.md` 和 `docs/TEST_GAP_PLAN.md` 仍包含旧版 `SkillActivator`、`red_lines`、多轮会话和 72 条测试描述，已不符合当前源码。
 - `evals/skill_evaluator.py` 源文件已不存在，仅残留 `__pycache__`，不应作为当前能力依据。
 - 当前没有本地红线拦截模块；是否需要恢复“必填字段/多轮补全”能力，需要先确认业务规则。
-

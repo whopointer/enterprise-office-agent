@@ -16,10 +16,10 @@ from adapters.skill_adapters import (
     LangChainSkillAdapter,
     OpenAICompatibleSkillAdapter,
     SpringAIHttpAdapter,
-    WordDocumentSkillAdapter,
 )
 from llm.skill_router import load_skill_env
 from tests.conftest import get_runtime_collector
+from tests.fakes import TestWordDocumentAdapter
 from tests.skill_fixtures import build_pipeline_test_skills
 
 load_skill_env()
@@ -35,16 +35,16 @@ def _make_skill(tmp_path: Path):
 
 
 # ---------------------------------------------------------------------------
-# WordDocumentSkillAdapter — 真实 docx 生成
+# TestWordDocumentAdapter — 测试专用 docx 生成
 # ---------------------------------------------------------------------------
 
 def test_word_document_adapter_generates_docx_artifact(tmp_path: Path) -> None:
-    """WordDocument 适配器应在指定路径生成 .docx 文件。"""
+    """TestWordDocument fake 应在指定路径生成 .docx 文件。"""
     output_path = tmp_path / "custom-report.docx"
     skill = _make_skill(tmp_path)
     result = SkillExecutor(
         FileSkillDiscovery(build_pipeline_test_skills(tmp_path)).discover(),
-        WordDocumentSkillAdapter(),
+        TestWordDocumentAdapter(),
     ).execute(
         skill,
         user_query="生成报告",
@@ -60,7 +60,7 @@ def test_word_document_adapter_uses_default_filename(tmp_path: Path) -> None:
     skill = _make_skill(tmp_path)
     result = SkillExecutor(
         FileSkillDiscovery(build_pipeline_test_skills(tmp_path)).discover(),
-        WordDocumentSkillAdapter(),
+        TestWordDocumentAdapter(),
     ).execute(
         skill,
         user_query="生成报告",

@@ -1,0 +1,120 @@
+{"id": "ROUTE-001", "query": "帮我生成一份项目周报 Word 文档", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "document_generation", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-002", "query": "创建一份季度经营分析报告 docx", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "document_generation", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-003", "query": "用 Word 模板填充合同内容", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "document_generation", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-004", "query": "批量生成员工通知书", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "document_generation", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-005", "query": "制作商业计划书 Word 版", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "document_generation", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-006", "query": "给客户生成一份会议纪要 docx", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "document_generation", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-007", "query": "把这些数据整理成月度销售报告", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "document_generation", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-008", "query": "生成一份带目录的年度总结报告", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "document_generation", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-009", "query": "创建证书模板并批量导出 Word", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "document_generation", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-010", "query": "帮我做一份中文项目验收报告", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "document_generation", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-011", "query": "文件名是 weekly-report.docx，生成周报", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "document_generation", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-012", "query": "输出为 reports/q2-summary.docx 的季度总结", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "document_generation", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-013", "query": "模板名称是 standard-report，生成项目报告", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "document_generation", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-014", "query": "生成 Q3 复盘报告，文件名为 q3-review.docx", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "document_generation", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-015", "query": "请生成一个可以导出 PDF 的 Word 报告", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "document_generation", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-016", "query": "帮我把 Node.js Express 服务部署到 Render", "expected_skill": "render-deploy", "expected_activation": true, "category": "deployment", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-017", "query": "生成一个 render.yaml Blueprint", "expected_skill": "render-deploy", "expected_activation": true, "category": "deployment", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-018", "query": "把 Django 服务部署上线到 Render", "expected_skill": "render-deploy", "expected_activation": true, "category": "deployment", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-019", "query": "我想在 Render 上发布这个静态站点", "expected_skill": "render-deploy", "expected_activation": true, "category": "deployment", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-020", "query": "给 monorepo 生成 Render 部署配置", "expected_skill": "render-deploy", "expected_activation": true, "category": "deployment", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-021", "query": "部署一个 Go API 到 Render", "expected_skill": "render-deploy", "expected_activation": true, "category": "deployment", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-022", "query": "Render 上创建 web service 和 Postgres", "expected_skill": "render-deploy", "expected_activation": true, "category": "deployment", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-023", "query": "帮我检查 Render 部署失败的原因", "expected_skill": "render-deploy", "expected_activation": true, "category": "deployment", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-024", "query": "需要把 Docker 镜像部署到 Render", "expected_skill": "render-deploy", "expected_activation": true, "category": "deployment", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-025", "query": "设置 Render cron job 部署方案", "expected_skill": "render-deploy", "expected_activation": true, "category": "deployment", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-026", "query": "给 Next.js + Postgres 应用生成 render.yaml", "expected_skill": "render-deploy", "expected_activation": true, "category": "deployment", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-027", "query": "我的服务需要环境变量，帮我写 Render 配置", "expected_skill": "render-deploy", "expected_activation": true, "category": "deployment", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-028", "query": "将 Python Flask 应用托管到 Render", "expected_skill": "render-deploy", "expected_activation": true, "category": "deployment", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-029", "query": "Render direct creation 和 blueprint 该选哪个", "expected_skill": "render-deploy", "expected_activation": true, "category": "deployment", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-030", "query": "帮我准备 Render 部署前置检查清单", "expected_skill": "render-deploy", "expected_activation": true, "category": "deployment", "difficulty": "easy", "tags": ["tp"]}
+{"id": "ROUTE-031", "query": "分析这个 PDF 并提取表格", "expected_skill": "pdf", "expected_activation": true, "category": "other_skill", "difficulty": "medium", "tags": ["tp"]}
+{"id": "ROUTE-032", "query": "帮我阅读 PDF 合同并总结风险", "expected_skill": "pdf", "expected_activation": true, "category": "other_skill", "difficulty": "medium", "tags": ["tp"]}
+{"id": "ROUTE-033", "query": "把 PDF 转成图片检查排版", "expected_skill": "pdf", "expected_activation": true, "category": "other_skill", "difficulty": "medium", "tags": ["tp"]}
+{"id": "ROUTE-034", "query": "用 OpenAI 最新文档查一下 Responses API", "expected_skill": "openai-docs", "expected_activation": true, "category": "other_skill", "difficulty": "medium", "tags": ["tp"]}
+{"id": "ROUTE-035", "query": "帮我迁移项目到 Codex 工作流", "expected_skill": "migrate-to-codex", "expected_activation": true, "category": "other_skill", "difficulty": "medium", "tags": ["tp"]}
+{"id": "ROUTE-036", "query": "为这个 ASP.NET Core 项目添加认证", "expected_skill": "aspnet-core", "expected_activation": true, "category": "other_skill", "difficulty": "medium", "tags": ["tp"]}
+{"id": "ROUTE-037", "query": "生成一个 WinUI 桌面应用界面", "expected_skill": "winui-app", "expected_activation": true, "category": "other_skill", "difficulty": "medium", "tags": ["tp"]}
+{"id": "ROUTE-038", "query": "帮我创建 ChatGPT Apps SDK 示例", "expected_skill": "chatgpt-apps", "expected_activation": true, "category": "other_skill", "difficulty": "medium", "tags": ["tp"]}
+{"id": "ROUTE-039", "query": "把会议纪要保存到 Notion", "expected_skill": "notion-knowledge-capture", "expected_activation": true, "category": "other_skill", "difficulty": "medium", "tags": ["tp"]}
+{"id": "ROUTE-040", "query": "根据 Notion 需求文档生成实现计划", "expected_skill": "notion-spec-to-implementation", "expected_activation": true, "category": "other_skill", "difficulty": "medium", "tags": ["tp"]}
+{"id": "ROUTE-041", "query": "帮我做安全最佳实践审查", "expected_skill": "security-best-practices", "expected_activation": true, "category": "other_skill", "difficulty": "medium", "tags": ["tp"]}
+{"id": "ROUTE-042", "query": "梳理这个仓库的安全负责人映射", "expected_skill": "security-ownership-map", "expected_activation": true, "category": "other_skill", "difficulty": "medium", "tags": ["tp"]}
+{"id": "ROUTE-043", "query": "根据 Figma 设计生成组件库", "expected_skill": "figma-generate-library", "expected_activation": true, "category": "other_skill", "difficulty": "medium", "tags": ["tp"]}
+{"id": "ROUTE-044", "query": "读取 Figma 文件并还原页面", "expected_skill": "figma-use", "expected_activation": true, "category": "other_skill", "difficulty": "medium", "tags": ["tp"]}
+{"id": "ROUTE-045", "query": "配置 Cloudflare Worker 部署", "expected_skill": "cloudflare-deploy", "expected_activation": true, "category": "other_skill", "difficulty": "medium", "tags": ["tp"]}
+{"id": "ROUTE-046", "query": "生成语音识别处理方案", "expected_skill": "speech", "expected_activation": true, "category": "other_skill", "difficulty": "medium", "tags": ["tp"]}
+{"id": "ROUTE-047", "query": "帮我查找 Notion 里的研究资料", "expected_skill": "notion-research-documentation", "expected_activation": true, "category": "other_skill", "difficulty": "medium", "tags": ["tp"]}
+{"id": "ROUTE-048", "query": "分析会议内容并同步 Notion", "expected_skill": "notion-meeting-intelligence", "expected_activation": true, "category": "other_skill", "difficulty": "medium", "tags": ["tp"]}
+{"id": "ROUTE-049", "query": "帮我测试 strict trigger 实验 skill", "expected_skill": "strict-trigger-lab", "expected_activation": true, "category": "other_skill", "difficulty": "medium", "tags": ["tp"]}
+{"id": "ROUTE-050", "query": "给桌宠项目增加互动动作", "expected_skill": "hatch-pet", "expected_activation": true, "category": "other_skill", "difficulty": "medium", "tags": ["tp"]}
+{"id": "ROUTE-051", "query": "今天上海天气怎么样", "expected_skill": null, "expected_activation": false, "category": "irrelevant", "difficulty": "easy", "tags": ["tn"]}
+{"id": "ROUTE-052", "query": "帮我订一张明天去北京的机票", "expected_skill": null, "expected_activation": false, "category": "irrelevant", "difficulty": "easy", "tags": ["tn"]}
+{"id": "ROUTE-053", "query": "推荐附近好吃的火锅店", "expected_skill": null, "expected_activation": false, "category": "irrelevant", "difficulty": "easy", "tags": ["tn"]}
+{"id": "ROUTE-054", "query": "解释一下量子纠缠是什么", "expected_skill": null, "expected_activation": false, "category": "irrelevant", "difficulty": "easy", "tags": ["tn"]}
+{"id": "ROUTE-055", "query": "写一首关于夏天的诗", "expected_skill": null, "expected_activation": false, "category": "irrelevant", "difficulty": "easy", "tags": ["tn"]}
+{"id": "ROUTE-056", "query": "帮我算 12345 乘以 678", "expected_skill": null, "expected_activation": false, "category": "irrelevant", "difficulty": "easy", "tags": ["tn"]}
+{"id": "ROUTE-057", "query": "提醒我下午三点开会", "expected_skill": null, "expected_activation": false, "category": "irrelevant", "difficulty": "easy", "tags": ["tn"]}
+{"id": "ROUTE-058", "query": "翻译这句话成英文：你好世界", "expected_skill": null, "expected_activation": false, "category": "irrelevant", "difficulty": "easy", "tags": ["tn"]}
+{"id": "ROUTE-059", "query": "给我讲个笑话", "expected_skill": null, "expected_activation": false, "category": "irrelevant", "difficulty": "easy", "tags": ["tn"]}
+{"id": "ROUTE-060", "query": "现在美元兑人民币汇率是多少", "expected_skill": null, "expected_activation": false, "category": "irrelevant", "difficulty": "easy", "tags": ["tn"]}
+{"id": "ROUTE-061", "query": "帮我查一下股票价格", "expected_skill": null, "expected_activation": false, "category": "irrelevant", "difficulty": "easy", "tags": ["tn"]}
+{"id": "ROUTE-062", "query": "规划一个周末旅行路线", "expected_skill": null, "expected_activation": false, "category": "irrelevant", "difficulty": "easy", "tags": ["tn"]}
+{"id": "ROUTE-063", "query": "比较一下两款手机", "expected_skill": null, "expected_activation": false, "category": "irrelevant", "difficulty": "easy", "tags": ["tn"]}
+{"id": "ROUTE-064", "query": "告诉我今天新闻头条", "expected_skill": null, "expected_activation": false, "category": "irrelevant", "difficulty": "easy", "tags": ["tn"]}
+{"id": "ROUTE-065", "query": "帮我写一封道歉邮件", "expected_skill": null, "expected_activation": false, "category": "irrelevant", "difficulty": "easy", "tags": ["tn"]}
+{"id": "ROUTE-066", "query": "生成一个健身计划", "expected_skill": null, "expected_activation": false, "category": "irrelevant", "difficulty": "easy", "tags": ["tn"]}
+{"id": "ROUTE-067", "query": "解释 Python 的闭包概念", "expected_skill": null, "expected_activation": false, "category": "irrelevant", "difficulty": "easy", "tags": ["tn"]}
+{"id": "ROUTE-068", "query": "帮我做一道数学题", "expected_skill": null, "expected_activation": false, "category": "irrelevant", "difficulty": "easy", "tags": ["tn"]}
+{"id": "ROUTE-069", "query": "推荐一本科幻小说", "expected_skill": null, "expected_activation": false, "category": "irrelevant", "difficulty": "easy", "tags": ["tn"]}
+{"id": "ROUTE-070", "query": "今天适合穿什么衣服", "expected_skill": null, "expected_activation": false, "category": "irrelevant", "difficulty": "easy", "tags": ["tn"]}
+{"id": "ROUTE-071", "query": "帮我整理一份部署报告", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "ambiguous", "difficulty": "hard", "tags": ["ambiguous"]}
+{"id": "ROUTE-072", "query": "把上线方案写成 Word 文档", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "ambiguous", "difficulty": "hard", "tags": ["ambiguous"]}
+{"id": "ROUTE-073", "query": "生成 Render 部署总结报告", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "ambiguous", "difficulty": "hard", "tags": ["ambiguous"]}
+{"id": "ROUTE-074", "query": "创建一个关于云部署的 docx", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "ambiguous", "difficulty": "hard", "tags": ["ambiguous"]}
+{"id": "ROUTE-075", "query": "把项目发布说明整理成报告", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "ambiguous", "difficulty": "hard", "tags": ["ambiguous"]}
+{"id": "ROUTE-076", "query": "写一份 Render 故障复盘文档", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "ambiguous", "difficulty": "hard", "tags": ["ambiguous"]}
+{"id": "ROUTE-077", "query": "帮我生成部署检查清单", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "ambiguous", "difficulty": "hard", "tags": ["ambiguous"]}
+{"id": "ROUTE-078", "query": "做一个应用上线计划书", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "ambiguous", "difficulty": "hard", "tags": ["ambiguous"]}
+{"id": "ROUTE-079", "query": "根据部署日志生成周报", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "ambiguous", "difficulty": "hard", "tags": ["ambiguous"]}
+{"id": "ROUTE-080", "query": "把 Django 部署步骤整理成报告", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "ambiguous", "difficulty": "hard", "tags": ["ambiguous"]}
+{"id": "ROUTE-081", "query": "给这个项目写发布文档", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "ambiguous", "difficulty": "hard", "tags": ["ambiguous"]}
+{"id": "ROUTE-082", "query": "创建一份运维交接 Word", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "ambiguous", "difficulty": "hard", "tags": ["ambiguous"]}
+{"id": "ROUTE-083", "query": "生成云平台选型分析文档", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "ambiguous", "difficulty": "hard", "tags": ["ambiguous"]}
+{"id": "ROUTE-084", "query": "写一份部署风险评估报告", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "ambiguous", "difficulty": "hard", "tags": ["ambiguous"]}
+{"id": "ROUTE-085", "query": "帮我输出 render.yaml 说明文档", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "ambiguous", "difficulty": "hard", "tags": ["ambiguous"]}
+{"id": "ROUTE-086", "query": "将服务部署说明导出为 docx", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "ambiguous", "difficulty": "hard", "tags": ["ambiguous"]}
+{"id": "ROUTE-087", "query": "生成项目上线复盘", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "ambiguous", "difficulty": "hard", "tags": ["ambiguous"]}
+{"id": "ROUTE-088", "query": "做一份部署 SOP 文档", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "ambiguous", "difficulty": "hard", "tags": ["ambiguous"]}
+{"id": "ROUTE-089", "query": "把环境变量配置写进报告", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "ambiguous", "difficulty": "hard", "tags": ["ambiguous"]}
+{"id": "ROUTE-090", "query": "帮我整理发布流程", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "ambiguous", "difficulty": "hard", "tags": ["ambiguous"]}
+{"id": "ROUTE-091", "query": "帮我生成一个不是 Word 的报告，直接回答文本即可", "expected_skill": null, "expected_activation": false, "category": "confusing_negative", "difficulty": "hard", "tags": ["tn", "confusing"]}
+{"id": "ROUTE-092", "query": "我想部署，不是到 Render，是到 Vercel", "expected_skill": null, "expected_activation": false, "category": "confusing_negative", "difficulty": "hard", "tags": ["tn", "confusing"]}
+{"id": "ROUTE-093", "query": "帮我看一下这个 report.pdf，不要生成 Word", "expected_skill": null, "expected_activation": false, "category": "confusing_negative", "difficulty": "hard", "tags": ["tn", "confusing"]}
+{"id": "ROUTE-094", "query": "我只是想了解 Render 是什么，不要部署", "expected_skill": null, "expected_activation": false, "category": "confusing_negative", "difficulty": "hard", "tags": ["tn", "confusing"]}
+{"id": "ROUTE-095", "query": "写一段部署相关的诗", "expected_skill": null, "expected_activation": false, "category": "confusing_negative", "difficulty": "hard", "tags": ["tn", "confusing"]}
+{"id": "ROUTE-096", "query": "生成一个 render 这个词的英语解释", "expected_skill": null, "expected_activation": false, "category": "confusing_negative", "difficulty": "hard", "tags": ["tn", "confusing"]}
+{"id": "ROUTE-097", "query": "帮我审查部署脚本，不要上线", "expected_skill": null, "expected_activation": false, "category": "confusing_negative", "difficulty": "hard", "tags": ["tn", "confusing"]}
+{"id": "ROUTE-098", "query": "把报告这个词翻译成英文", "expected_skill": null, "expected_activation": false, "category": "confusing_negative", "difficulty": "hard", "tags": ["tn", "confusing"]}
+{"id": "ROUTE-099", "query": "我想创建一个叫 RenderReport 的类", "expected_skill": null, "expected_activation": false, "category": "confusing_negative", "difficulty": "hard", "tags": ["tn", "confusing"]}
+{"id": "ROUTE-100", "query": "帮我写 WordPress 部署教程，不用 Word 文档", "expected_skill": null, "expected_activation": false, "category": "confusing_negative", "difficulty": "hard", "tags": ["tn", "confusing"]}
+{"id": "ROUTE-101", "query": "生成 docker-compose，不要 Render", "expected_skill": null, "expected_activation": false, "category": "confusing_negative", "difficulty": "hard", "tags": ["tn", "confusing"]}
+{"id": "ROUTE-102", "query": "帮我画一个部署架构，不用生成文件", "expected_skill": null, "expected_activation": false, "category": "confusing_negative", "difficulty": "hard", "tags": ["tn", "confusing"]}
+{"id": "ROUTE-103", "query": "写一份不是 docx 的 Markdown 报告", "expected_skill": null, "expected_activation": false, "category": "confusing_negative", "difficulty": "hard", "tags": ["tn", "confusing"]}
+{"id": "ROUTE-104", "query": "解释 Blueprint 设计模式，不是 Render Blueprint", "expected_skill": null, "expected_activation": false, "category": "confusing_negative", "difficulty": "hard", "tags": ["tn", "confusing"]}
+{"id": "ROUTE-105", "query": "帮我找 deployment 这个单词的同义词", "expected_skill": null, "expected_activation": false, "category": "confusing_negative", "difficulty": "hard", "tags": ["tn", "confusing"]}
+{"id": "ROUTE-106", "query": "报告一下今天的天气", "expected_skill": null, "expected_activation": false, "category": "confusing_negative", "difficulty": "hard", "tags": ["tn", "confusing"]}
+{"id": "ROUTE-107", "query": "我想把文档部署到网站上", "expected_skill": null, "expected_activation": false, "category": "confusing_negative", "difficulty": "hard", "tags": ["tn", "confusing"]}
+{"id": "ROUTE-108", "query": "这个项目叫 render-deploy，帮我重命名", "expected_skill": null, "expected_activation": false, "category": "confusing_negative", "difficulty": "hard", "tags": ["tn", "confusing"]}
+{"id": "ROUTE-109", "query": "帮我生成一个合同审查意见，不要 Word", "expected_skill": null, "expected_activation": false, "category": "confusing_negative", "difficulty": "hard", "tags": ["tn", "confusing"]}
+{"id": "ROUTE-110", "query": "帮我发布微博，不是发布应用", "expected_skill": null, "expected_activation": false, "category": "confusing_negative", "difficulty": "hard", "tags": ["tn", "confusing"]}
+{"id": "ROUTE-111", "query": "文件名是 alpha.docx，帮我生成报告", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "field_noise", "difficulty": "medium", "tags": ["fields"]}
+{"id": "ROUTE-112", "query": "输出为 beta.docx 的周报", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "field_noise", "difficulty": "medium", "tags": ["fields"]}
+{"id": "ROUTE-113", "query": "模板名称是 finance-v1，生成报告", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "field_noise", "difficulty": "medium", "tags": ["fields"]}
+{"id": "ROUTE-114", "query": "文件名为 gamma.docx，模板叫 standard-report", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "field_noise", "difficulty": "medium", "tags": ["fields"]}
+{"id": "ROUTE-115", "query": "请把 q4-summary.docx 做成季度总结", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "field_noise", "difficulty": "medium", "tags": ["fields"]}
+{"id": "ROUTE-116", "query": "帮我生成报告，文件名 delta.docx，标题叫项目复盘", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "field_noise", "difficulty": "medium", "tags": ["fields"]}
+{"id": "ROUTE-117", "query": "用模板 annual-template 输出 reports/annual.docx", "expected_skill": "docx-report-generator", "expected_activation": true, "category": "field_noise", "difficulty": "medium", "tags": ["fields"]}
+{"id": "ROUTE-118", "query": "部署 Node 服务，环境变量 NODE_ENV=production", "expected_skill": "render-deploy", "expected_activation": true, "category": "field_noise", "difficulty": "medium", "tags": ["fields"]}
+{"id": "ROUTE-119", "query": "Render 部署 Django，使用 python-django.yaml", "expected_skill": "render-deploy", "expected_activation": true, "category": "field_noise", "difficulty": "medium", "tags": ["fields"]}
+{"id": "ROUTE-120", "query": "生成 render.yaml，服务名叫 api-prod", "expected_skill": "render-deploy", "expected_activation": true, "category": "field_noise", "difficulty": "medium", "tags": ["fields"]}

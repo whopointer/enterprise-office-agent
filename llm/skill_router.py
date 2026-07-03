@@ -12,8 +12,8 @@ from urllib.parse import urlparse
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from core.executor import SkillExecutor
-from _skill.models import ExecutionResult, SkillAdapter, SkillDefinition, SkillIndex
+from core.executor import SkillExecutor, TokenTracker
+from _skill.models import ExecutionResult, SkillAdapter, SkillDefinition, SkillIndex, TokenMetrics
 from .schema import validate_llm_decision_payload
 from agent.field_extractor import extract_fields_from_query
 
@@ -60,10 +60,12 @@ class OpenAIChatSkillRouter:
         self.index = index
         self.model = model or os.environ.get("MODEL") or os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
         self.client = client or _build_openai_client()
+        self.last_token_usage: Any = None
 
     def route(self, user_query: str, *, fields: dict[str, Any] | None = None) -> LLMSkillDecision:
         """让大模型根据 skill 目录和用户自然语言选择一个 skill。"""
         fields = {**extract_fields_from_query(user_query), **(fields or {})}
+        self.last_token_usage = None
         response = self.client.chat.completions.create(
             model=self.model,
             temperature=0,
@@ -79,8 +81,13 @@ class OpenAIChatSkillRouter:
                 },
             ],
         )
+        self.last_token_usage = getattr(response, "usage", None)
         raw = response.choices[0].message.content or "{}"
         return self._parse_decision(raw, fallback_fields=fields)
+
+    def last_token_metrics(self) -> TokenMetrics | None:
+        """返回最近一次路由调用的真实 token 指标；供应商无 usage 时返回 None。"""
+        return TokenTracker().build_actual_metrics(self.last_token_usage)
 
     def route_and_execute(
         self,

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 import json
 
-from _skill.models import ExecutionMetrics
+from _skill.models import ExecutionMetrics, TokenMetrics
 from _skill.utils import safe_rate, average
 
 
@@ -22,6 +22,7 @@ class RuntimeMetrics:
     total_tokens: int
     latency_ms: float
     success: bool
+    token_source: str
 
 
 @dataclass
@@ -33,6 +34,10 @@ class EvalRecord:
     actual_skill: str | None
     expected_activation: bool
     actual_activation: bool
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    total_tokens: int | None = None
+    token_source: str | None = None
 
 
 @dataclass
@@ -54,6 +59,7 @@ class RuntimeCollector:
             total_tokens=metrics.token_metrics.total_tokens,
             latency_ms=metrics.latency_ms,
             success=metrics.execution_success,
+            token_source=metrics.token_metrics.source,
         ))
 
     # ---- 路由准确度 ----
@@ -61,6 +67,7 @@ class RuntimeCollector:
     def record_routing(
         self, query: str, expected_skill: str | None, actual_skill: str | None,
         expected_activation: bool, actual_activation: bool,
+        token_metrics: TokenMetrics | None = None,
     ) -> None:
         """记录一次 LLM 路由决策。"""
         self.eval_records.append(EvalRecord(
@@ -69,6 +76,10 @@ class RuntimeCollector:
             actual_skill=actual_skill,
             expected_activation=expected_activation,
             actual_activation=actual_activation,
+            input_tokens=token_metrics.input_tokens if token_metrics else None,
+            output_tokens=token_metrics.output_tokens if token_metrics else None,
+            total_tokens=token_metrics.total_tokens if token_metrics else None,
+            token_source=token_metrics.source if token_metrics else None,
         ))
 
     # ---- 综合报告 ----
@@ -98,6 +109,10 @@ class RuntimeCollector:
                 "max": max(tokens),
                 "avg": round(sum(tokens) / len(tokens), 1),
                 "total": sum(tokens),
+            }
+            result["token_source_counts"] = {
+                source: sum(1 for r in self.records if r.token_source == source)
+                for source in sorted({r.token_source for r in self.records})
             }
             result["latency_ms"] = {
                 "min": round(min(latencies), 2),
@@ -143,6 +158,11 @@ class RuntimeCollector:
                     fp += 1
 
             total_eval = tp + tn + fp + fn
+            result["routing_eval_scope"] = {
+                "source": "pytest_runtime_collector",
+                "sample_count": total_eval,
+                "description": "仅统计 pytest 运行过程中通过 RuntimeCollector 显式记录的路由样本；不等同于大样本 routing-eval-report。",
+            }
             result["confusion_matrix"] = {"TP": tp, "TN": tn, "FP": fp, "FN": fn}
             result["activation_accuracy"] = safe_rate(tp + tn, total_eval)
             result["precision"] = safe_rate(tp, tp + fp)
@@ -154,9 +174,24 @@ class RuntimeCollector:
                     "actual_skill": rec.actual_skill,
                     "expected_activation": rec.expected_activation,
                     "actual_activation": rec.actual_activation,
+                    "total_tokens": rec.total_tokens,
+                    "token_source": rec.token_source,
                 }
                 for rec in self.eval_records
             ]
+            route_token_records = [rec for rec in self.eval_records if rec.total_tokens is not None]
+            if route_token_records:
+                route_tokens = [int(rec.total_tokens) for rec in route_token_records if rec.total_tokens is not None]
+                result["routing_token_consumption"] = {
+                    "min": min(route_tokens),
+                    "max": max(route_tokens),
+                    "avg": round(sum(route_tokens) / len(route_tokens), 1),
+                    "total": sum(route_tokens),
+                }
+                result["routing_token_source_counts"] = {
+                    source: sum(1 for rec in route_token_records if rec.token_source == source)
+                    for source in sorted({rec.token_source for rec in route_token_records if rec.token_source})
+                }
 
         return result
 
@@ -180,13 +215,23 @@ def _format_markdown(report: dict, records: list[RuntimeMetrics], eval_records: 
     if not report or "error" in report:
         return f"# 量化报告\n\n{report.get('error', '无数据')}\n"
 
-    lines = ["# Skill Pipeline 量化报告", ""]
+    lines = [
+        "# Skill Pipeline pytest 运行时量化报告",
+        "",
+        "> 本报告只统计 pytest 运行过程中 RuntimeCollector 显式记录的样本；路由混淆矩阵通常是小规模集成样本，不等同于 `routing-eval-report.*` 的大样本评测。",
+        "",
+    ]
 
     # ---- 路由准确度（混淆矩阵） ----
     cm = report.get("confusion_matrix")
     if cm:
+        scope = report.get("routing_eval_scope", {})
         lines.extend([
-            "## 路由准确度（混淆矩阵）",
+            "## pytest 路由准确度（混淆矩阵）",
+            "",
+            f"- 样本来源: {scope.get('source', 'pytest_runtime_collector')}",
+            f"- 样本数量: {scope.get('sample_count', sum(cm.values()))}",
+            "- 大样本路由评测请查看 `routing-eval-report.md`。",
             "",
             f"| 指标 | 值 |",
             f"|------|-----|",
@@ -213,6 +258,30 @@ def _format_markdown(report: dict, records: list[RuntimeMetrics], eval_records: 
                 lines.append(f"| {i} | {d['query']} | {d['expected_skill'] or '-'} | {d['actual_skill'] or '-'} | {exp} | {act} |")
             lines.append("")
 
+        rtc = report.get("routing_token_consumption")
+        if rtc:
+            lines.extend([
+                "## 路由 Token 消耗",
+                "",
+                "| 指标 | 值 |",
+                "|------|-----|",
+                f"| 单次最小 | {rtc['min']} |",
+                f"| 单次最大 | {rtc['max']} |",
+                f"| 单次平均 | {rtc['avg']} |",
+                f"| 累计总消耗 | {rtc['total']} |",
+                "",
+            ])
+        route_source_counts = report.get("routing_token_source_counts")
+        if route_source_counts:
+            lines.extend([
+                "## 路由 Token 来源",
+                "| 来源 | 次数 |",
+                "|------|------|",
+            ])
+            for source, count in route_source_counts.items():
+                lines.append(f"| {source} | {count} |")
+            lines.append("")
+
     # ---- 执行概览 ----
     if "total_executions" in report:
         lines.extend([
@@ -236,6 +305,16 @@ def _format_markdown(report: dict, records: list[RuntimeMetrics], eval_records: 
             f"| 累计总消耗 | {tc['total']} |",
             "",
         ])
+    source_counts = report.get("token_source_counts")
+    if source_counts:
+        lines.extend([
+            "## Token 来源",
+            "| 来源 | 次数 |",
+            "|------|------|",
+        ])
+        for source, count in source_counts.items():
+            lines.append(f"| {source} | {count} |")
+        lines.append("")
 
     # ---- 延迟 ----
     lat = report.get("latency_ms")
@@ -289,4 +368,3 @@ def _format_markdown(report: dict, records: list[RuntimeMetrics], eval_records: 
             lines.append(f"| {i} | {r.skill_name} | {r.adapter_name} | {r.total_tokens} | {r.latency_ms:.2f}ms | {status} |")
 
     return "\n".join(lines) + "\n"
-

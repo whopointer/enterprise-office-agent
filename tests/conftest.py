@@ -39,6 +39,9 @@ def runtime_collector():
 
 def pytest_sessionfinish(session, exitstatus):
     """测试全结束后落盘。"""
+    if session.config.option.collectonly:
+        return
+
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
@@ -84,6 +87,7 @@ def pytest_sessionfinish(session, exitstatus):
         f"**通过率**: {summary['pass_rate']:.1%}",
         f"**退出码**: {exitstatus}",
         "",
+        *_related_report_lines(OUTPUT_DIR),
         "## 用例明细",
         "",
         "| 用例 | 结果 | 耗时(s) |",
@@ -105,3 +109,53 @@ def pytest_sessionfinish(session, exitstatus):
 
     tr.write_sep("=", f"测试汇总: {json_path}", bold=True)
     tr.write_sep("=", f"测试汇总: {md_path}", bold=True)
+
+
+def _related_report_lines(output_dir: Path) -> list[str]:
+    """生成已存在评测报告的摘要入口，避免不同统计口径混淆。"""
+    lines: list[str] = ["## 相关评测报告", ""]
+    added = False
+
+    routing_path = output_dir / "routing-eval-report.json"
+    if routing_path.exists():
+        routing = _read_json(routing_path)
+        summary = routing.get("summary", {}) if isinstance(routing, dict) else {}
+        cm = summary.get("confusion_matrix", {}) if isinstance(summary, dict) else {}
+        lines.extend([
+            "- `routing-eval-report.md`: 真实 LLM 大样本路由评测。",
+            f"  样本: {summary.get('total_cases', 0)}，通过: {summary.get('passed_cases', 0)}，Case Accuracy: {summary.get('case_accuracy', 0):.1%}。",
+            f"  混淆矩阵: TP={cm.get('TP', 0)} / TN={cm.get('TN', 0)} / FP={cm.get('FP', 0)} / FN={cm.get('FN', 0)}。",
+            "",
+        ])
+        added = True
+
+    quality_path = output_dir / "skill-quality-summary.json"
+    if quality_path.exists():
+        quality = _read_json(quality_path)
+        inventory = quality.get("inventory", {}) if isinstance(quality, dict) else {}
+        prompt_budget = quality.get("prompt_budget", {}) if isinstance(quality, dict) else {}
+        field_quality = quality.get("field_quality", {}) if isinstance(quality, dict) else {}
+        lines.extend([
+            "- `skill-quality-summary.md`: skill 盘点、prompt 预算、字段抽取质量摘要。",
+            f"  Skills: {inventory.get('skill_count', 0)}，Load errors: {inventory.get('load_error_count', 0)}，路由 prompt tokens: {prompt_budget.get('route_prompt_tokens', 0)}。",
+            f"  字段抽取样本: {field_quality.get('case_count', 0)}，Exact match: {field_quality.get('exact_match_rate', 0):.1%}。",
+            "",
+        ])
+        added = True
+
+    if not added:
+        lines.extend([
+            "- 暂无额外评测报告。可运行 `python3 scripts/run_routing_eval.py --output-dir test-results` 和 `python3 scripts/run_skill_quality.py --output-dir test-results` 生成。",
+            "",
+        ])
+
+    return lines
+
+
+def _read_json(path: Path) -> dict:
+    """读取 JSON 报告，失败时返回空 dict。"""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}

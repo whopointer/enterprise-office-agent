@@ -24,13 +24,14 @@ from tests.skill_fixtures import build_pipeline_test_skills
 load_skill_env()
 
 
-def _record_routing(query, expected_skill, actual_skill, expected_activation, actual_activation):
+def _record_routing(query, expected_skill, actual_skill, expected_activation, actual_activation, router=None):
     get_runtime_collector().record_routing(
         query=query,
         expected_skill=expected_skill,
         actual_skill=actual_skill,
         expected_activation=expected_activation,
         actual_activation=actual_activation,
+        token_metrics=router.last_token_metrics() if router else None,
     )
 
 pytestmark = pytest.mark.skipif(
@@ -82,7 +83,7 @@ def test_llm_routes_to_document_generator(tmp_path: Path) -> None:
     assert result.execution is not None
     assert result.execution.metrics.execution_success is True
     _record_routing("生成 Word 季度总结报告", "document-generator",
-                    result.decision.skill_name, True, True)
+                    result.decision.skill_name, True, True, router=router)
 
 
 def test_llm_routes_to_code_reviewer(tmp_path: Path) -> None:
@@ -97,7 +98,7 @@ def test_llm_routes_to_code_reviewer(tmp_path: Path) -> None:
     assert result.decision.skill_name == "code-reviewer"
     assert result.execution is not None
     _record_routing("审查 ./src Python 代码", "code-reviewer",
-                    result.decision.skill_name, True, True)
+                    result.decision.skill_name, True, True, router=router)
 
 
 def test_llm_routes_to_simple_echo(tmp_path: Path) -> None:
@@ -107,7 +108,7 @@ def test_llm_routes_to_simple_echo(tmp_path: Path) -> None:
     assert result.decision.should_call is True
     assert result.decision.skill_name == "simple-echo"
     _record_routing("echo ping 测试", "simple-echo",
-                    result.decision.skill_name, True, True)
+                    result.decision.skill_name, True, True, router=router)
 
 
 def test_llm_routes_to_data_analyzer(tmp_path: Path) -> None:
@@ -121,7 +122,7 @@ def test_llm_routes_to_data_analyzer(tmp_path: Path) -> None:
     assert result.decision.should_call is True
     assert result.decision.skill_name == "data-analyzer"
     _record_routing("分析 data.csv", "data-analyzer",
-                    result.decision.skill_name, True, True)
+                    result.decision.skill_name, True, True, router=router)
 
 
 # ---------------------------------------------------------------------------
@@ -134,7 +135,7 @@ def test_llm_rejects_irrelevant_weather_query(tmp_path: Path) -> None:
     result = _route_or_skip(router, "今天北京的天气怎么样", _make_adapter())
     assert result.decision.should_call is False
     assert result.execution is None
-    _record_routing("天气查询", None, result.decision.skill_name, False, False)
+    _record_routing("天气查询", None, result.decision.skill_name, False, False, router=router)
 
 
 def test_llm_rejects_irrelevant_file_upload_query(tmp_path: Path) -> None:
@@ -143,7 +144,7 @@ def test_llm_rejects_irrelevant_file_upload_query(tmp_path: Path) -> None:
     result = _route_or_skip(router, "帮我用 Python 写一个文件上传下载服务", _make_adapter())
     assert result.decision.should_call is False
     assert result.execution is None
-    _record_routing("文件上传服务", None, result.decision.skill_name, False, False)
+    _record_routing("文件上传服务", None, result.decision.skill_name, False, False, router=router)
 
 
 def test_llm_rejects_empty_query(tmp_path: Path) -> None:
@@ -151,7 +152,7 @@ def test_llm_rejects_empty_query(tmp_path: Path) -> None:
     router = OpenAIChatSkillRouter(_make_index(tmp_path))
     result = _route_or_skip(router, "   ", _make_adapter())
     assert result.decision.should_call is False
-    _record_routing("空查询", None, result.decision.skill_name, False, False)
+    _record_routing("空查询", None, result.decision.skill_name, False, False, router=router)
 
 
 # ---------------------------------------------------------------------------

@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 import argparse
+import json
 import os
 import sys
+from typing import Any
 
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -31,7 +33,9 @@ def main() -> None:
     messages: list[dict[str, str]] = [{"role": "system", "content": "你是一个简洁、准确的中文助手。"}]
     if args.message:
         user_message = " ".join(args.message)
-        print(_ask(client, model, messages, user_message, args.temperature))
+        result = _ask(client, model, messages, user_message, args.temperature)
+        print(result["answer"])
+        print(json.dumps({"usage": result["usage"]}, ensure_ascii=False))
         return
 
     print(f"model={model}")
@@ -42,8 +46,9 @@ def main() -> None:
             break
         if not user_message:
             continue
-        answer = _ask(client, model, messages, user_message, args.temperature)
-        print(f"模型: {answer}")
+        result = _ask(client, model, messages, user_message, args.temperature)
+        print(f"模型: {result['answer']}")
+        print(json.dumps({"usage": result["usage"]}, ensure_ascii=False))
 
 
 def _load_env() -> None:
@@ -73,7 +78,7 @@ def _ask(
     messages: list[dict[str, str]],
     user_message: str,
     temperature: float,
-) -> str:
+) -> dict[str, Any]:
     """发送一轮消息，并把回复追加到上下文。"""
     messages.append({"role": "user", "content": user_message})
     response = client.chat.completions.create(
@@ -83,7 +88,21 @@ def _ask(
     )
     answer = response.choices[0].message.content or ""
     messages.append({"role": "assistant", "content": answer})
-    return answer
+    return {"answer": answer, "usage": _format_usage(getattr(response, "usage", None))}
+
+
+def _format_usage(usage: object | None) -> dict[str, int] | None:
+    """格式化供应商返回的 usage；没有 usage 时返回 None。"""
+    if usage is None:
+        return None
+    if isinstance(usage, dict):
+        return {key: value for key, value in usage.items() if isinstance(value, int)}
+    result: dict[str, int] = {}
+    for key in ("prompt_tokens", "completion_tokens", "total_tokens", "input_tokens", "output_tokens"):
+        value = getattr(usage, key, None)
+        if isinstance(value, int):
+            result[key] = value
+    return result or None
 
 
 if __name__ == "__main__":

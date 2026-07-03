@@ -42,15 +42,38 @@ class TokenTracker:
         input_tokens = self.count(prompt)
         output_tokens = self.count(output)
         total_tokens = input_tokens + output_tokens
-        overhead_pct = None
-        if self.baseline_tokens and self.baseline_tokens > 0:
-            overhead_pct = (total_tokens - self.baseline_tokens) / self.baseline_tokens * 100
         return TokenMetrics(
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             total_tokens=total_tokens,
-            overhead_pct=overhead_pct,
+            overhead_pct=self._overhead(total_tokens),
+            source="estimated",
         )
+
+    def build_actual_metrics(self, usage: Any) -> TokenMetrics | None:
+        """从供应商返回的 usage 中生成真实 token 指标。"""
+        input_tokens = _usage_int(usage, "prompt_tokens", "input_tokens")
+        output_tokens = _usage_int(usage, "completion_tokens", "output_tokens")
+        total_tokens = _usage_int(usage, "total_tokens")
+
+        if input_tokens is None or output_tokens is None:
+            return None
+        if total_tokens is None:
+            total_tokens = input_tokens + output_tokens
+
+        return TokenMetrics(
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            total_tokens=total_tokens,
+            overhead_pct=self._overhead(total_tokens),
+            source="actual",
+        )
+
+    def _overhead(self, total_tokens: int) -> float | None:
+        """计算相对 baseline 的 token 开销。"""
+        if self.baseline_tokens and self.baseline_tokens > 0:
+            return (total_tokens - self.baseline_tokens) / self.baseline_tokens * 100
+        return None
 
 
 class SkillExecutor:
@@ -88,7 +111,9 @@ class SkillExecutor:
         finally:
             latency_ms = (time.perf_counter() - start) * 1000
 
-        token_metrics = self.token_tracker.build_metrics(prompt, output)
+        token_metrics = self.token_tracker.build_actual_metrics(getattr(self.adapter, "last_token_usage", None))
+        if token_metrics is None:
+            token_metrics = self.token_tracker.build_metrics(prompt, output)
 
         metrics = ExecutionMetrics(
             token_metrics=token_metrics,
@@ -127,3 +152,21 @@ def _build_prompt(
         skill.body,
     ]
     return "\n".join(lines)
+
+
+def _usage_int(usage: Any, *keys: str) -> int | None:
+    """从 OpenAI-compatible usage 对象或 dict 中读取 token 数。"""
+    if usage is None:
+        return None
+    for key in keys:
+        if isinstance(usage, dict):
+            value = usage.get(key)
+        else:
+            value = getattr(usage, key, None)
+        if value is None:
+            continue
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            continue
+    return None

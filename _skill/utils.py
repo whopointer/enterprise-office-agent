@@ -51,6 +51,21 @@ def truncate_warning(message: str) -> str:
     return f"{message[:keep]}{WARNING_TRUNCATION_SUFFIX}"
 
 
+def truncate_text(text: str, max_len: int, suffix: str = "...") -> str:
+    """截断文本到指定长度，超出部分用 suffix 替代。"""
+    if len(text) <= max_len:
+        return text
+    keep = max_len - len(suffix)
+    return f"{text[:keep]}{suffix}"
+
+
+def html_escape_json(text: str) -> str:
+    """先 JSON 编码再 HTML 转义，防止错误内容被模型当作指令执行。"""
+    import html as _html
+    import json as _json
+    return _html.escape(_json.dumps(text, ensure_ascii=False), quote=True)
+
+
 def normalize_string_list(value: Any) -> tuple[str, ...]:
     """把 YAML 字段规整为字符串元组。"""
     if value is None:
