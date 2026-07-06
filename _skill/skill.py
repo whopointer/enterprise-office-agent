@@ -12,8 +12,6 @@ if __package__ in {None, ""}:
     from _skill.parser import parse_skill_file
     from _skill.prompt import format_skills_prompt
     from _skill.models import (
-        CallableSkillAdapter,
-        SkillAdapter,
         SkillDefinition,
         SkillIndex,
         TokenMetrics,
@@ -24,17 +22,13 @@ else:
     from .parser import parse_skill_file
     from .prompt import format_skills_prompt
     from .models import (
-        CallableSkillAdapter,
-        SkillAdapter,
         SkillDefinition,
         SkillIndex,
         TokenMetrics,
     )
 
 __all__ = [
-    "CallableSkillAdapter",
     "FileSkillDiscovery",
-    "SkillAdapter",
     "SkillDefinition",
     "SkillIndex",
     "SkillsMiddleware",

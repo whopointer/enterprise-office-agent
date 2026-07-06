@@ -1,8 +1,7 @@
-"""Skill 机制中间件导出 — 只负责加载与注入。执行逻辑在 core/ 中。"""
+"""Skill 机制中间件导出 — 只负责加载与注入。"""
 
 from .skill import (
     FileSkillDiscovery,
-    SkillAdapter,
     SkillDefinition,
     SkillIndex,
     SkillsMiddleware,
@@ -10,12 +9,9 @@ from .skill import (
     format_skills_prompt,
     parse_skill_file,
 )
-from .models import CallableSkillAdapter
 
 __all__ = [
-    "CallableSkillAdapter",
     "FileSkillDiscovery",
-    "SkillAdapter",
     "SkillDefinition",
     "SkillIndex",
     "SkillsMiddleware",

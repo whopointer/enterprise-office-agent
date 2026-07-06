@@ -16,7 +16,7 @@ from openai import APIStatusError, RateLimitError
 from _skill import (
     FileSkillDiscovery,
 )
-from adapters.skill_adapters import OpenAICompatibleSkillAdapter
+from evals.llm_answer_runner import EvalLLMAnswerRunner
 from evals.qa_quality import evaluate_answer_locally, normalize_case
 from llm.skill_router import (
     LLMRouterResponseError,
@@ -85,22 +85,7 @@ def _judge_answer_with_llm(case: dict, output: str) -> dict:
             "reason": "string",
         },
     }
-    judge = OpenAICompatibleSkillAdapter()
-    response = judge.client.chat.completions.create(
-        model=judge.model,
-        temperature=0,
-        response_format={"type": "json_object"},
-        messages=[
-            {"role": "system", "content": "你是严格的软件工程答案质量评测员，只输出 JSON。"},
-            {"role": "user", "content": json.dumps(prompt, ensure_ascii=False)},
-        ],
-    )
-    raw = response.choices[0].message.content or "{}"
-    try:
-        parsed = json.loads(raw)
-    except json.JSONDecodeError:
-        parsed = {"overall": 0, "critical_issues": ["judge 返回非 JSON"], "reason": raw}
-    parsed["_token_metrics"] = judge.client and getattr(response, "usage", None)
+    parsed = EvalLLMAnswerRunner().judge_json(prompt)
     parsed["_threshold"] = thresholds.get("judge_score", 0.70)
     parsed["_critical_threshold"] = thresholds.get("critical_error_score", 0.80)
     return _normalize_judge_result(parsed)
@@ -365,11 +350,8 @@ def test_qa_case(case, runtime_collector):
         assert routing_correct, f"{case['id']}: 期望 {expected_skill} 实际 {actual_skill}"
 
     skill = index.get(actual_skill)
-    adapter = OpenAICompatibleSkillAdapter()
-    from core.executor import SkillExecutor
-
-    executor = SkillExecutor(index, adapter)
-    result = executor.execute(skill, user_query=query, fields=decision.fields)
+    runner = EvalLLMAnswerRunner()
+    result = runner.run(skill, user_query=query, fields=decision.fields)
 
     runtime_collector.record(skill.name, result.metrics)
 

@@ -1,56 +1,54 @@
 # DeepAgent Skill 系统设计文档
 
-> 对标官方 Skill 格式规范（`docs/Sills格式要求.docx`） | 加载 + 注入 + LLM 路由 + 执行 + 量化评估
+> 对标官方 Skill 格式规范（`docs/Sills格式要求.docx`） | 加载 + 注入 + LLM 路由 + 工具执行边界 + 量化评估
 
 ## 1. 架构概览
 
-```
+```text
 ┌─────────────────────────────────────┐
 │           _skill/ Skill 中间件        │
 │  扫描/解析 SKILL.md → 注入 prompt      │
-│  (Discovery + Prompt Injection)      │
+│  Discovery + Parser + Middleware     │
 └──────────────┬──────────────────────┘
                │ skills_catalog {name, description}
                ▼
 ┌─────────────────────────────────────┐
 │           llm/ 大模型路由             │
 │  LLM 选 skill → JSON schema 校验      │
-│  (OpenAIChatSkillRouter)             │
+│  OpenAIChatSkillRouter.route()       │
 └──────────────┬──────────────────────┘
-               │ selected skill
+               │ decision {skill_name, fields, reason}
                ▼
 ┌─────────────────────────────────────┐
-│           core/ 执行器                │
-│  构建 prompt → 调适配器 → 记录指标     │
-│  (SkillExecutor + TokenTracker)      │
-└──────────────┬──────────────────────┘
-               │
-               ▼
-┌─────────────────────────────────────┐
-│         adapters/ 框架适配器          │
-│  OpenAICompatible / LangChain        │
-│  SpringAI / WordDocument             │
+│              Agent Runtime           │
+│  读取完整 SKILL.md → 自行调用工具       │
+│  Bash / Write / Read / MCP / tools    │
 └─────────────────────────────────────┘
 ```
+
+本仓库不再提供 `SkillExecutor + adapters` 作为正式执行层。Skill 本身是说明书，执行应由 agent runtime 根据 `SKILL.md` 调用工具完成。
+
+QA 自动化评测需要生成答案时，使用 `evals/llm_answer_runner.py`。它是 eval-only runner，不是生产 agent 架构。
 
 ## 2. 模块职责
 
 | 模块 | 文件 | 职责 |
 |------|------|------|
-| `_skill/models.py` | SkillDefinition, SkillIndex | 数据模型 |
+| `_skill/models.py` | SkillDefinition, SkillIndex | Skill 数据模型 |
 | `_skill/parser.py` | parse_skill_file | 解析 SKILL.md YAML frontmatter |
 | `_skill/discovery.py` | FileSkillDiscovery | 扫描 skills/ 目录 → SkillIndex |
-| `_skill/middleware.py` | SkillsMiddleware | before_agent + system prompt 注入 |
+| `_skill/middleware.py` | SkillsMiddleware | before-agent system prompt 注入 |
 | `_skill/prompt.py` | format_skills_prompt | 渲染可用 skill 清单 |
-| `core/executor.py` | SkillExecutor, TokenTracker | 构建 prompt + 调适配器 + 记录 token |
+| `llm/skill_router.py` | OpenAIChatSkillRouter | LLM 选择 skill，仅负责路由 |
+| `llm/schema.py` | validate_llm_decision_payload | 校验 LLM 返回 JSON |
+| `core/token_tracker.py` | TokenTracker | actual usage 读取与估算 fallback |
 | `core/runtime_metrics.py` | RuntimeCollector | 混淆矩阵 + token + 延迟采集 |
-| `llm/skill_router.py` | OpenAIChatSkillRouter | LLM 选择 skill |
-| `llm/schema.py` | validate_llm_decision_payload | 校验 LLM 返回的 JSON |
-| `adapters/skill_adapters.py` | 4 种 Adapter | 真实执行 |
+| `evals/qa_quality.py` | evaluate_answer_locally | QA 本地确定性质量检查 |
+| `evals/llm_answer_runner.py` | EvalLLMAnswerRunner | QA 评测专用答案生成 runner |
+| `tools/word_document_tool.py` | WordDocumentTool | 真实 docx 生成工具 |
 | `agent/field_extractor.py` | extract_fields_from_query | 正则提取中文字段 |
 | `scripts/chat_with_llm.py` | CLI | 测试 `.env` 中的大模型连通性 |
-| `scripts/llm_skill_chat.py` | CLI | 真实 LLM 路由 + 本地 mock adapter 执行 |
-| `evals/` | 预留 | 当前仅保留包入口，批量 evaluator 尚未接入源码 |
+| `scripts/llm_skill_chat.py` | CLI | 真实 LLM skill 路由测试 |
 
 ## 3. SKILL.md 格式
 
@@ -58,11 +56,11 @@
 
 ```yaml
 ---
-name: skill-name                    # 必填：小写字母+数字+连字符，1-64 字符
-description: 功能描述与触发条件      # 必填：最多 1024 字符
-allowed-tools: Read, Bash, Write    # 可选：推荐使用的工具
-license: MIT                        # 可选
-compatibility: python>=3.10          # 可选
+name: skill-name
+description: 功能描述与触发条件
+allowed-tools: Read, Bash, Write
+license: MIT
+compatibility: python>=3.10
 ---
 
 # 使用流程
@@ -72,30 +70,27 @@ compatibility: python>=3.10          # 可选
 4. 使用 assets/ 中的模板或素材
 ```
 
-**不再使用的字段**（已移除）：`triggers`, `red_lines`, `references` (YAML 声明), `assets` (YAML 声明), `metrics`, `token_estimate`。
+不再使用的字段：`triggers`, `red_lines`, `references` YAML 声明, `assets` YAML 声明, `metrics`, `token_estimate`。
 
-当前解析器还允许可选 `metadata` mapping，并将其规整为 `dict[str, str]`；它只作为扩展元信息保存，不参与路由、红线或执行决策。
+`references/`、`assets/`、`scripts/` 以目录形式存在，由 Agent 运行时按需读取，不在 SKILL.md 中声明。
 
-> references/、assets/、scripts/ 以目录形式存在，由 Agent 运行时按需读取，不在 SKILL.md 中声明。
-
-## 4. 渐进披露（Progressive Disclosure）
+## 4. 渐进披露
 
 两步走，对齐官方格式的分层暴露策略：
 
-**第一步 — 轻量目录**：LLM 路由时，`OpenAIChatSkillRouter` 的 system prompt 只包含 `skills_catalog=[{name, description}]`。当前仓库 `skills/` 下有 21 个 skill。
+1. 路由阶段只注入 `name + description`，控制 prompt 成本。
+2. Agent 决定使用某个 skill 后，再读取完整 `SKILL.md` body 和相关资源。
 
-`SkillsMiddleware.modify_system_prompt()` 面向通用 Agent 注入时，会额外展示 skill 来源、完整 `SKILL.md` 路径、license/compatibility 和加载告警；这不是 LLM 路由专用 prompt。
-
-**第二步 — 按需读取**：LLM 选中 skill 后，执行器才加载完整的 SKILL.md body（平均 11000 字符），组装为执行 prompt。
-
+```text
+路由阶段: {name, description} × 21
+执行阶段: agent 按需读取完整 SKILL.md / references / scripts / assets
 ```
-路由阶段: {name, description} × 21   →  LLM 选一个
-执行阶段: 完整 SKILL.md body          →  适配器执行
-```
+
+`SkillsMiddleware.modify_system_prompt()` 面向通用 Agent 注入，会展示 skill 来源、路径、license/compatibility 和加载告警。`OpenAIChatSkillRouter` 面向评测，只构造轻量 `skills_catalog`。
 
 ## 5. 路由流程
 
-```
+```text
 用户输入: "帮我生成一份 Word 报告"
     │
     ├─ 1. extract_fields_from_query()  正则预提取 filename/template_name
@@ -105,105 +100,132 @@ compatibility: python>=3.10          # 可选
     ├─ 3. OpenAI-compatible API 调用   temperature=0, response_format=json_object
     │      返回: {should_call, skill_name, confidence, reason, fields}
     │
-    ├─ 4. validate_llm_decision_payload()  校验 should_call/bool, skill_name 存在性
-    │
-    └─ 5. SkillExecutor.execute()      构建 prompt → 调 adapter
+    └─ 4. validate_llm_decision_payload()  校验 should_call/bool, skill_name 存在性
 ```
 
-## 6. 路由准确度评估（混淆矩阵）
+`OpenAIChatSkillRouter.route()` 只返回路由决策，不执行 skill。
 
-LLM 路由的准确性通过混淆矩阵量化，替代原来的本地关键词/红线规则校验：
+## 6. Agent 执行边界
+
+正式 agent 框架中的执行流程应是：
+
+```text
+用户输入
+  -> agent 看到 system prompt 中的 skill 列表
+  -> agent 决定使用某个 skill
+  -> agent 读取完整 SKILL.md
+  -> agent 按 SKILL.md 调用已有工具
+```
+
+本仓库已删除旧的 `SkillExecutor + adapters` 执行链路，避免把 eval runner 误当成生产架构。
+
+## 7. QA 评测执行边界
+
+QA 问答集为了评估“路由后答案是否可靠”，需要一个可重复的答案生成方式。该能力位于：
+
+```text
+evals/llm_answer_runner.py
+```
+
+职责：
+
+- 根据 `skill + user_query + fields` 生成 QA 评测 prompt。
+- 调用 OpenAI-compatible Chat Completions。
+- 读取供应商 actual usage。
+- 返回 output、prompt 和 `ExecutionMetrics`。
+
+它只服务自动化评测，不参与正式 agent 执行链路。
+
+## 8. 工具层
+
+真实可执行动作放入 `tools/`。
+
+| 工具 | 用途 |
+|------|------|
+| `WordDocumentTool` | 基于 `python-docx` 生成 `.docx` 文件 |
+
+后续如果需要 Bash、文件写入、MCP、HTTP 等能力，应以 tool 形式挂给 agent runtime，而不是恢复 `adapter.execute(prompt)`。
+
+## 9. 路由准确度评估
+
+LLM 路由通过混淆矩阵量化：
 
 | 类型 | 含义 | 示例 |
 |------|------|------|
-| **TP** | 期望激活某 skill，LLM 正确选中 | "生成 word 报告" → document-generator ✅ |
-| **TN** | 期望不激活，LLM 正确拒绝 | "今天天气" → should_call=false ✅ |
-| **FP** | 期望不激活，LLM 误激活 | "写代码" → 误选 code-reviewer |
-| **FN** | 期望激活，LLM 漏激活 | "生成报告" → should_call=false |
+| TP | 期望激活某 skill，LLM 正确选中 | "生成 word 报告" → document-generator |
+| TN | 期望不激活，LLM 正确拒绝 | "今天天气" → should_call=false |
+| FP | 期望不激活，LLM 误激活 | "写代码" → 误选 code-reviewer |
+| FN | 期望激活，LLM 漏激活 | "生成报告" → should_call=false |
 
-指标计算公式：
-
-```
+```text
 Accuracy  = (TP + TN) / (TP + TN + FP + FN)
 Precision = TP / (TP + FP)
 Recall    = TP / (TP + FN)
 ```
 
-## 7. 执行流程
+## 10. QA 答案质量评估
 
-```
-SkillExecutor.execute(skill, user_query, fields)
-    │
-    ├─ _build_prompt():    组装
-    │     # Skill: {name}
-    │     ## Skill 描述
-    │     {description}
-    │     ## 用户请求
-    │     {user_query}
-    │     ## 结构化字段
-    │     {fields}
-    │     ## Skill 指令
-    │     {body}
-    │
-    ├─ adapter.execute()   调用适配器
-    │
-    └─ TokenTracker       记录 input/output/total token + overhead%
-```
+QA 不做标准答案全文比对，而是组合判断：
 
-## 8. 适配器
+| 维度 | 判定方式 |
+|------|----------|
+| 技术正确性 | `technical_checks` + LLM judge |
+| 步骤顺序 | `ordered_steps` + LLM judge |
+| 配置可执行性 | `config_checks` 解析配置块 |
+| 文档标准 | `document_standard` |
+| 问题解决度 | LLM judge `problem_resolution` |
+| 隐蔽严重错误 | `forbidden` + judge `hidden_critical_errors` |
+| 幻觉引用 | 检查 `scripts/`、`references/`、`assets/` 路径是否存在 |
 
-| 适配器 | 用途 | 调用方式 |
-|--------|------|---------|
-| OpenAICompatibleSkillAdapter | 将 prompt 发给 LLM 执行 | OpenAI-compatible Chat Completions API |
-| LangChainSkillAdapter | 委托 LangChain Runnable | runnable.invoke(payload) |
-| SpringAIHttpAdapter | HTTP POST 到 SpringAI 服务 | urllib.request |
+## 11. 量化报告
 
-测试中需要真实落盘 `.docx` 时，使用 `tests/fakes/TestWordDocumentAdapter`。它是测试 fake，不属于生产适配器层。
-
-## 9. 量化指标体系
-
-每次 `pytest` 运行会自动输出测试汇总到 `test-results/` 目录；当测试中使用 `runtime_collector` / `get_runtime_collector()` 记录了数据时，同时输出量化报告。
+每次 pytest 运行会自动输出：
 
 | 报告文件 | 内容 |
 |----------|------|
-| `test-report.json` / `.md` | pytest 测试 pass/fail/skip/error 明细 + 耗时；若已存在大样本评测报告，会展示摘要入口 |
-| `quantitative-report.json` / `.md` | pytest 运行时样本的混淆矩阵 (TP/TN/FP/FN) + Accuracy/Precision/Recall |
-| | Token 消耗 (min/max/avg/total) |
-| | 延迟 (min/max/avg/p50/p95) |
-| | 按 skill 分组：执行次数、平均 Token、平均延迟、成功率 |
-| | 按适配器分组：同上 |
-| | 逐次执行明细表 |
-| `routing-eval-report.json` / `.md` | 真实 LLM 大样本路由评测，当前数据集 120 条，包含按类别、难度、混淆对统计 |
-| `skill-quality-summary.json` / `.md` | skill 盘点、prompt token 预算、字段抽取质量摘要 |
+| `test-report.json/md` | pytest pass/fail/skip/error 明细 |
+| `quantitative-report.json/md` | pytest 运行时路由、token、延迟、执行成功率 |
+| `routing-eval-report.json/md` | 120 条真实 LLM 大样本路由评测 |
+| `qa-report.json/md` | QA 问答集质量评测 |
+| `skill-quality-summary.json/md` | skill 盘点、prompt 预算、字段抽取质量 |
 
-`quantitative-report.*` 只来自 pytest 显式记录的路由和执行样本，不是线上全量遥测，也不等同于 120 条大样本路由评测。大样本路由准确率以 `routing-eval-report.*` 为准。Token 优先使用供应商 API 返回的真实 usage；拿不到 usage 时，`TokenTracker` 回退到字符数近似估算。
+Token 优先使用供应商 API 返回的真实 usage；拿不到 usage 时，`TokenTracker` 回退到字符数近似估算。
 
-## 10. 测试覆盖
+## 12. 测试覆盖
 
-| 文件 | 条数 | 类型 |
-|------|------|------|
-| `test_skill_discovery.py` | 8 | 本地：解析、校验、多源覆盖 |
-| `test_skill_execution.py` | 6 | 本地：prompt 构建、token、异常兜底 |
-| `test_skill_adapters.py` | 8 | 本地+LLM：4 种适配器 |
-| `test_skill_boundary.py` | 7 | 本地：边界与鲁棒性 |
-| `test_skill_field_extraction.py` | 9 | 本地+LLM：正则提取、LLM 对比 |
-| `test_skill_llm_integration.py` | 13 | LLM：TP/TN/字段提取/schema 校验 |
+当前非 LLM 测试覆盖：
 
-## 11. 当前真实链路与 mock 边界
+| 文件 | 类型 |
+|------|------|
+| `test_skill_discovery.py` | SKILL.md 解析、校验、多源覆盖 |
+| `test_skill_boundary.py` | 边界与鲁棒性 |
+| `test_skill_field_extraction.py` | 字段提取 |
+| `test_skill_prompt_budget.py` | prompt 成本与渐进披露 |
+| `test_skill_router_contract.py` | 路由 schema 契约 |
+| `test_qa_quality_eval.py` | QA 本地质量评估 |
+| `test_runtime_metrics_report.py` | 量化报告 |
+| `test_word_document_tool.py` | Word 工具 |
 
-| 场景 | 真实部分 | mock / 兜底部分 |
-|------|----------|-----------------|
-| `scripts/chat_with_llm.py` | 真实 OpenAI-compatible LLM 对话 | 无 skill 路由和执行 |
-| `scripts/llm_skill_chat.py` | 真实 LLM 路由、真实 `skills/` Discovery | 使用 `CallableSkillAdapter("mock-adapter")`，只返回 `called:{skill.name}` |
-| `OpenAIChatSkillRouter.route()` | 真实 LLM 选择 skill + schema 校验 | 字段提取先用正则兜底，再合并 LLM fields |
-| `OpenAIChatSkillRouter.route_and_execute()` | 真实路由 + 真实 `SkillExecutor` | 执行是否真实取决于传入 adapter |
-| `TestWordDocumentAdapter` | 测试 fake，真实生成 `.docx` 文件 | 位于 `tests/fakes/`，文档内容是最小实现，不是业务模板渲染 |
-| `LangChainSkillAdapter` | 真实调用传入 runnable/callable | 测试中 runnable 是本地假对象 |
-| `SpringAIHttpAdapter` | 真实 HTTP POST 实现 | 当前测试只覆盖无效 endpoint 的失败路径 |
-| `OpenAICompatibleSkillAdapter` | 有 API_KEY 时真实调用 LLM 执行 prompt | 无 API_KEY 或供应商不可用时测试自动 skip |
+LLM 相关测试：
 
-## 12. 已知待同步项
+| 文件 | 类型 |
+|------|------|
+| `test_skill_llm_integration.py` | 真实 LLM 路由 TP/TN/schema |
+| `test_skill_qa.py` | 真实 LLM QA 答案质量评测 |
 
-- `docs/TEST_DIMENSIONS.md` 和 `docs/TEST_GAP_PLAN.md` 仍包含旧版 `SkillActivator`、`red_lines`、多轮会话和 72 条测试描述，已不符合当前源码。
-- `evals/skill_evaluator.py` 源文件已不存在，仅残留 `__pycache__`，不应作为当前能力依据。
-- 当前没有本地红线拦截模块；是否需要恢复“必填字段/多轮补全”能力，需要先确认业务规则。
+## 13. 当前真实链路与评测边界
+
+| 场景 | 真实部分 | 评测/兜底部分 |
+|------|----------|---------------|
+| `scripts/chat_with_llm.py` | 真实 OpenAI-compatible LLM 对话 | 无 skill 路由 |
+| `scripts/llm_skill_chat.py` | 真实 LLM 路由、真实 `skills/` Discovery | 不执行 skill |
+| `OpenAIChatSkillRouter.route()` | 真实 LLM 选择 skill + schema 校验 | 字段提取先用正则兜底 |
+| `EvalLLMAnswerRunner` | 真实 LLM 生成 QA 答案 | eval-only，不是生产执行层 |
+| `WordDocumentTool` | 真实生成 `.docx` 文件 | 当前是最小实现，不是业务模板渲染 |
+
+## 14. 后续方向
+
+- 接入真实 agent runtime，让 agent 自己读取 SKILL.md 并调用工具。
+- 增强 `tools/`，把可执行能力明确注册为工具。
+- 继续扩展 QA 数据集到更多 skill，而不是只覆盖 Render deploy。
+- 强化复杂配置校验，减少 LLM judge 才能发现的问题。

@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from _skill import FileSkillDiscovery, SkillsMiddleware
-from core.executor import TokenTracker
+from core.token_tracker import TokenTracker
 from llm.skill_router import OpenAIChatSkillRouter
 from tests.skill_fixtures import build_pipeline_test_skills
 

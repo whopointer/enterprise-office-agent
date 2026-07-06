@@ -1,6 +1,6 @@
 # Enterprise Office Agent
 
-DeepAgent Skill 机制的参考实现。项目围绕 `SKILL.md` 文件实现 skill 的发现、解析、路由、执行和量化评估，核心目标是验证一套可测试、可观测、可扩展的 skill 中间件链路。
+DeepAgent Skill 机制的参考实现。项目围绕 `SKILL.md` 文件实现 skill 的发现、解析、注入、路由和量化评估，核心目标是验证一套可测试、可观测、可扩展的 skill 中间件链路。
 
 ## 核心链路
 
@@ -11,14 +11,13 @@ DeepAgent Skill 机制的参考实现。项目围绕 `SKILL.md` 文件实现 ski
   -> SKILL.md 解析 _skill/parser.py
   -> LLM 路由 llm/skill_router.py
   -> schema 校验 llm/schema.py
-  -> SkillExecutor 构造执行 prompt
-  -> Adapter 执行
-  -> ExecutionResult + RuntimeCollector 指标采集
+  -> 返回 skill_name / fields / reason
+  -> 真实 agent 按需读取 SKILL.md 并调用工具
 ```
 
-路由阶段只向大模型暴露 `name + description`，用于降低 prompt 成本。只有 LLM 选中某个 skill 后，执行器才把该 skill 的完整 `SKILL.md` body 拼入执行 prompt。
+路由阶段只向大模型暴露 `name + description`，用于降低 prompt 成本。正式 agent 运行时应在选中某个 skill 后按需读取完整 `SKILL.md`，再调用已有工具执行。
 
-当前本地链路还没有实现通用 tool/script 执行 loop。`allowed-tools` 会被解析和保留，但是否真的执行工具取决于传入的 adapter 或外部 runtime。
+当前仓库不再提供 `SkillExecutor + adapter` 这类绕过 agent 的 prompt 执行层。QA 问答集需要生成答案时，使用 `evals/llm_answer_runner.py` 作为评测专用 runner；真实动作能力放在 `tools/` 中。
 
 ## 目录结构
 
@@ -26,15 +25,15 @@ DeepAgent Skill 机制的参考实现。项目围绕 `SKILL.md` 文件实现 ski
 |------|------|
 | `_skill/` | Skill 中间件：模型、解析、发现、prompt 注入、命令行入口 |
 | `llm/` | OpenAI-compatible LLM 路由和返回 schema 校验 |
-| `core/` | SkillExecutor、TokenTracker、RuntimeCollector |
-| `adapters/` | 执行后端适配器：OpenAI-compatible、LangChain、SpringAI HTTP |
+| `core/` | TokenTracker、RuntimeCollector |
 | `agent/` | 中文自然语言字段预提取 |
 | `skills/` | 实际 skill 定义，每个 skill 目录包含 `SKILL.md` |
 | `datasets/` | 路由评测和 QA 数据集 |
-| `evals/` | 路由评测辅助逻辑 |
+| `evals/` | 路由评测、QA 质量评估、评测专用 LLM runner |
+| `tools/` | 真实工具实现，例如 `WordDocumentTool` |
 | `scripts/` | CLI 测试入口和报告生成脚本 |
 | `tests/` | 自动化测试 |
-| `tests/fakes/` | 测试专用 fake，例如 `TestWordDocumentAdapter` |
+| `tests/fakes/` | 测试专用 fake |
 | `docs/` | 设计文档、测试维度、系统报告 |
 | `test-results/` | pytest、路由评测、QA 评测和质量摘要输出 |
 
@@ -65,8 +64,7 @@ python3 -m pytest tests/ -v
 ```bash
 python3 -m pytest tests/ \
   --ignore=tests/test_skill_llm_integration.py \
-  --ignore=tests/test_skill_conversation.py \
-  --ignore=tests/test_skill_evaluation.py \
+  --ignore=tests/test_skill_qa.py \
   -v
 ```
 
@@ -116,7 +114,7 @@ python3 scripts/run_skill_quality.py --output-dir test-results
 | QA LLM Judge 语义质量 | 20 条 Render QA 样本 | 64.8% | 判断技术正确性、问题解决度、隐蔽严重错误 |
 | QA 幻觉控制 | 20 条 Render QA 样本 | 100.0% | 未发现不存在的 `scripts/`、`references/`、`assets/` 引用 |
 | QA 严重错误控制 | 20 条 Render QA 样本 | 85.0% | 仍有 1 条严重问题样本 |
-| QA 执行成功率 | 17 次真实执行 | 100.0% | `OpenAICompatible` adapter 执行均成功 |
+| QA 答案生成成功率 | 17 次真实 QA runner 调用 | 100.0% | `EvalLLMAnswerRunner` 调用均成功 |
 | QA 路由 token | 20 次真实路由 | 平均 2102.8，总计 42056 | 来源为供应商 actual usage |
 | QA 执行 token | 17 次真实执行 | 平均 5129.1，总计 87194 | 来源为供应商 actual usage |
 | Skill 加载 | 21 个 skill | 0 加载错误 | `skill-quality-summary.*` |
@@ -158,32 +156,21 @@ compatibility: python>=3.10
 - `compatibility`
 - `metadata`
 
-## 执行 prompt
+## Agent 执行口径
 
-LLM 路由命中后，`SkillExecutor` 会构造如下 prompt 交给 adapter：
+正式链路中，skill 本身只是说明书，不直接执行。Agent 在 system prompt 中看到 skill 列表，决定命中某个 skill 后，再读取完整 `SKILL.md`，按说明调用已有工具，例如 Bash、Write、Read、MCP 或 `tools/` 中的工具。
 
 ```text
-# Skill: {skill.name}
-
-## Skill 描述
-{skill.description}
-
-## 用户请求
-{user_query}
-
-## 结构化字段
-{fields json}
-
-## Skill 指令
-{skill.body}
+用户请求
+  -> Agent 读取 skill 列表
+  -> Agent 决定使用某个 skill
+  -> Agent 读取完整 SKILL.md
+  -> Agent 按说明调用工具
 ```
 
-adapter 决定后续如何执行：
+QA 自动化测试为了评估“路由后答案是否可靠”，会使用 `evals/llm_answer_runner.py` 生成评测答案。它是 eval-only runner，不是生产 agent 架构的一部分。
 
-- `OpenAICompatibleSkillAdapter`：把 prompt 发给 OpenAI-compatible Chat Completions API
-- `LangChainSkillAdapter`：交给 LangChain Runnable 或 callable
-- `SpringAIHttpAdapter`：POST 到 SpringAI HTTP 服务
-- 测试中的 `TestWordDocumentAdapter`：只在 `tests/fakes/` 中用于验证 docx 产物落盘
+真实可执行能力应放在 `tools/`。当前已有 `tools/word_document_tool.py::WordDocumentTool`，用于通过 `python-docx` 生成 `.docx` 文件。
 
 ## 测试报告
 

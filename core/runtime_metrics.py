@@ -1,4 +1,4 @@
-"""轻量运行时量化指标采集 — 统计 token 消耗、延迟、适配器成功率、混淆矩阵。"""
+"""轻量运行时量化指标采集，统计 token 消耗、延迟、runner 成功率和混淆矩阵。"""
 
 from __future__ import annotations
 
@@ -16,13 +16,18 @@ class RuntimeMetrics:
     """一次执行的运行时指标快照。"""
 
     skill_name: str
-    adapter_name: str
+    runner_name: str
     input_tokens: int
     output_tokens: int
     total_tokens: int
     latency_ms: float
     success: bool
     token_source: str
+
+    @property
+    def adapter_name(self) -> str:
+        """兼容旧报告和旧测试数据的只读别名。"""
+        return self.runner_name
 
 
 @dataclass
@@ -53,7 +58,7 @@ class RuntimeCollector:
         """记录一次执行。"""
         self.records.append(RuntimeMetrics(
             skill_name=skill_name,
-            adapter_name=metrics.adapter_name,
+            runner_name=metrics.runner_name,
             input_tokens=metrics.token_metrics.input_tokens,
             output_tokens=metrics.token_metrics.output_tokens,
             total_tokens=metrics.token_metrics.total_tokens,
@@ -96,10 +101,10 @@ class RuntimeCollector:
             latencies = [r.latency_ms for r in self.records]
             sorted_lat = sorted(latencies)
             by_skill: dict[str, list[RuntimeMetrics]] = {}
-            by_adapter: dict[str, list[RuntimeMetrics]] = {}
+            by_runner: dict[str, list[RuntimeMetrics]] = {}
             for r in self.records:
                 by_skill.setdefault(r.skill_name, []).append(r)
-                by_adapter.setdefault(r.adapter_name, []).append(r)
+                by_runner.setdefault(r.runner_name, []).append(r)
 
             result["total_executions"] = total
             result["success_count"] = success_count
@@ -130,15 +135,16 @@ class RuntimeCollector:
                 }
                 for name, recs in sorted(by_skill.items())
             }
-            result["by_adapter"] = {
+            result["by_runner"] = {
                 name: {
                     "count": len(recs),
                     "avg_tokens": round(sum(r.total_tokens for r in recs) / len(recs), 1),
                     "avg_latency_ms": round(sum(r.latency_ms for r in recs) / len(recs), 2),
                     "success_rate": round(sum(1 for r in recs if r.success) / len(recs), 4),
                 }
-                for name, recs in sorted(by_adapter.items())
+                for name, recs in sorted(by_runner.items())
             }
+            result["by_adapter"] = result["by_runner"]
 
         # 混淆矩阵
         if self.eval_records:
@@ -344,15 +350,15 @@ def _format_markdown(report: dict, records: list[RuntimeMetrics], eval_records: 
             lines.append(f"| {name} | {info['count']} | {info['avg_tokens']} | {info['avg_latency_ms']}ms | {info['success_rate']:.1%} |")
         lines.append("")
 
-    # ---- 按适配器分组 ----
-    ba = report.get("by_adapter")
-    if ba:
+    # ---- 按 Runner/工具分组 ----
+    br = report.get("by_runner") or report.get("by_adapter")
+    if br:
         lines.extend([
-            "## 按适配器分组",
-            "| 适配器 | 执行次数 | 平均 Token | 平均延迟 | 成功率 |",
+            "## 按 Runner/工具分组",
+            "| Runner/工具 | 执行次数 | 平均 Token | 平均延迟 | 成功率 |",
             "|--------|---------|-----------|---------|--------|",
         ])
-        for name, info in ba.items():
+        for name, info in br.items():
             lines.append(f"| {name} | {info['count']} | {info['avg_tokens']} | {info['avg_latency_ms']}ms | {info['success_rate']:.1%} |")
         lines.append("")
 
@@ -360,11 +366,11 @@ def _format_markdown(report: dict, records: list[RuntimeMetrics], eval_records: 
     if records:
         lines.extend([
             "## 逐次执行明细",
-            "| # | Skill | Adapter | Token | 延迟 | 结果 |",
+            "| # | Skill | Runner/工具 | Token | 延迟 | 结果 |",
             "|---|-------|---------|-------|------|------|",
         ])
         for i, r in enumerate(records, 1):
             status = "✅" if r.success else "❌"
-            lines.append(f"| {i} | {r.skill_name} | {r.adapter_name} | {r.total_tokens} | {r.latency_ms:.2f}ms | {status} |")
+            lines.append(f"| {i} | {r.skill_name} | {r.runner_name} | {r.total_tokens} | {r.latency_ms:.2f}ms | {status} |")
 
     return "\n".join(lines) + "\n"

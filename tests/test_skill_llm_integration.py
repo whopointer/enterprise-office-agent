@@ -8,10 +8,7 @@ import os
 import pytest
 from openai import APIStatusError, RateLimitError
 
-from _skill import (
-    CallableSkillAdapter,
-    FileSkillDiscovery,
-)
+from _skill import FileSkillDiscovery
 from llm.skill_router import (
     LLMRouterResponseError,
     OpenAIChatSkillRouter,
@@ -40,9 +37,9 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def _route_or_skip(router, query, adapter, fields=None):
+def _route_or_skip(router, query, fields=None):
     try:
-        return router.route_and_execute(query, adapter=adapter, fields=fields)
+        return router.route(query, fields=fields)
     except RateLimitError as exc:
         pytest.skip(f"限流: {str(exc).split(chr(10))[0][:160]}")
     except APIStatusError as exc:
@@ -62,10 +59,6 @@ def _make_index(tmp_path: Path):
     return FileSkillDiscovery(build_pipeline_test_skills(tmp_path)).discover()
 
 
-def _make_adapter():
-    return CallableSkillAdapter("test-adapter", lambda p, s, c: f"called:{s.name}")
-
-
 # ---------------------------------------------------------------------------
 # TP：正确路由
 # ---------------------------------------------------------------------------
@@ -73,56 +66,41 @@ def _make_adapter():
 def test_llm_routes_to_document_generator(tmp_path: Path) -> None:
     """LLM 应将文档生成意图路由到 document-generator。"""
     router = OpenAIChatSkillRouter(_make_index(tmp_path))
-    result = _route_or_skip(
-        router,
-        "请帮我生成一份 Word 格式的季度总结报告",
-        _make_adapter(),
-    )
-    assert result.decision.should_call is True
-    assert result.decision.skill_name == "document-generator"
-    assert result.execution is not None
-    assert result.execution.metrics.execution_success is True
+    decision = _route_or_skip(router, "请帮我生成一份 Word 格式的季度总结报告")
+    assert decision.should_call is True
+    assert decision.skill_name == "document-generator"
     _record_routing("生成 Word 季度总结报告", "document-generator",
-                    result.decision.skill_name, True, True, router=router)
+                    decision.skill_name, True, True, router=router)
 
 
 def test_llm_routes_to_code_reviewer(tmp_path: Path) -> None:
     """LLM 应将代码审查意图路由到 code-reviewer。"""
     router = OpenAIChatSkillRouter(_make_index(tmp_path))
-    result = _route_or_skip(
-        router,
-        "帮我审查一下 ./src 目录下的 Python 代码",
-        _make_adapter(),
-    )
-    assert result.decision.should_call is True
-    assert result.decision.skill_name == "code-reviewer"
-    assert result.execution is not None
+    decision = _route_or_skip(router, "帮我审查一下 ./src 目录下的 Python 代码")
+    assert decision.should_call is True
+    assert decision.skill_name == "code-reviewer"
     _record_routing("审查 ./src Python 代码", "code-reviewer",
-                    result.decision.skill_name, True, True, router=router)
+                    decision.skill_name, True, True, router=router)
 
 
 def test_llm_routes_to_simple_echo(tmp_path: Path) -> None:
     """LLM 应将回显请求路由到 simple-echo。"""
     router = OpenAIChatSkillRouter(_make_index(tmp_path))
-    result = _route_or_skip(router, "echo ping 测试连通性", _make_adapter())
-    assert result.decision.should_call is True
-    assert result.decision.skill_name == "simple-echo"
+    decision = _route_or_skip(router, "echo ping 测试连通性")
+    assert decision.should_call is True
+    assert decision.skill_name == "simple-echo"
     _record_routing("echo ping 测试", "simple-echo",
-                    result.decision.skill_name, True, True, router=router)
+                    decision.skill_name, True, True, router=router)
 
 
 def test_llm_routes_to_data_analyzer(tmp_path: Path) -> None:
     """LLM 应将数据分析请求路由到 data-analyzer。"""
     router = OpenAIChatSkillRouter(_make_index(tmp_path))
-    result = _route_or_skip(
-        router,
-        "分析一下 data.csv 文件并生成统计图表",
-        _make_adapter(),
-    )
-    assert result.decision.should_call is True
-    assert result.decision.skill_name == "data-analyzer"
+    decision = _route_or_skip(router, "分析一下 data.csv 文件并生成统计图表")
+    assert decision.should_call is True
+    assert decision.skill_name == "data-analyzer"
     _record_routing("分析 data.csv", "data-analyzer",
-                    result.decision.skill_name, True, True, router=router)
+                    decision.skill_name, True, True, router=router)
 
 
 # ---------------------------------------------------------------------------
@@ -132,27 +110,25 @@ def test_llm_routes_to_data_analyzer(tmp_path: Path) -> None:
 def test_llm_rejects_irrelevant_weather_query(tmp_path: Path) -> None:
     """天气类无关请求应被拒绝。"""
     router = OpenAIChatSkillRouter(_make_index(tmp_path))
-    result = _route_or_skip(router, "今天北京的天气怎么样", _make_adapter())
-    assert result.decision.should_call is False
-    assert result.execution is None
-    _record_routing("天气查询", None, result.decision.skill_name, False, False, router=router)
+    decision = _route_or_skip(router, "今天北京的天气怎么样")
+    assert decision.should_call is False
+    _record_routing("天气查询", None, decision.skill_name, False, False, router=router)
 
 
 def test_llm_rejects_irrelevant_file_upload_query(tmp_path: Path) -> None:
     """不匹配任 skill 的请求应被拒绝。"""
     router = OpenAIChatSkillRouter(_make_index(tmp_path))
-    result = _route_or_skip(router, "帮我用 Python 写一个文件上传下载服务", _make_adapter())
-    assert result.decision.should_call is False
-    assert result.execution is None
-    _record_routing("文件上传服务", None, result.decision.skill_name, False, False, router=router)
+    decision = _route_or_skip(router, "帮我用 Python 写一个文件上传下载服务")
+    assert decision.should_call is False
+    _record_routing("文件上传服务", None, decision.skill_name, False, False, router=router)
 
 
 def test_llm_rejects_empty_query(tmp_path: Path) -> None:
     """空请求应被拒绝。"""
     router = OpenAIChatSkillRouter(_make_index(tmp_path))
-    result = _route_or_skip(router, "   ", _make_adapter())
-    assert result.decision.should_call is False
-    _record_routing("空查询", None, result.decision.skill_name, False, False, router=router)
+    decision = _route_or_skip(router, "   ")
+    assert decision.should_call is False
+    _record_routing("空查询", None, decision.skill_name, False, False, router=router)
 
 
 # ---------------------------------------------------------------------------

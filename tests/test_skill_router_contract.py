@@ -7,7 +7,7 @@ import json
 
 import pytest
 
-from _skill import CallableSkillAdapter, FileSkillDiscovery
+from _skill import FileSkillDiscovery
 from llm.schema import LLMDecisionSchemaError
 from llm.skill_router import LLMRouterResponseError, OpenAIChatSkillRouter
 from tests.skill_fixtures import build_pipeline_test_skills
@@ -66,8 +66,8 @@ class _Usage:
     total_tokens = 25
 
 
-def test_router_accepts_valid_skill_decision_and_executes(tmp_path: Path) -> None:
-    """合法 JSON 决策应能进入本地执行器。"""
+def test_router_accepts_valid_skill_decision(tmp_path: Path) -> None:
+    """合法 JSON 决策应返回标准化路由结果。"""
     router = _router(
         tmp_path,
         {
@@ -78,20 +78,16 @@ def test_router_accepts_valid_skill_decision_and_executes(tmp_path: Path) -> Non
             "fields": {"title": "周报"},
         },
     )
-    adapter = CallableSkillAdapter("contract", lambda _p, skill, _c: f"ok:{skill.name}")
+    decision = router.route("生成 weekly.docx 的报告")
 
-    result = router.route_and_execute("生成 weekly.docx 的报告", adapter=adapter)
-
-    assert result.decision.should_call is True
-    assert result.decision.skill_name == "document-generator"
-    assert result.decision.fields["filename"] == "weekly.docx"
-    assert result.decision.fields["title"] == "周报"
-    assert result.execution is not None
-    assert result.execution.output == "ok:document-generator"
+    assert decision.should_call is True
+    assert decision.skill_name == "document-generator"
+    assert decision.fields["filename"] == "weekly.docx"
+    assert decision.fields["title"] == "周报"
 
 
 def test_router_accepts_valid_rejection(tmp_path: Path) -> None:
-    """should_call=false 时不应调用执行器。"""
+    """should_call=false 时只返回拒绝决策，不进入工具或 runner。"""
     router = _router(
         tmp_path,
         {
@@ -103,13 +99,10 @@ def test_router_accepts_valid_rejection(tmp_path: Path) -> None:
         },
     )
 
-    result = router.route_and_execute(
-        "今天北京天气怎么样",
-        adapter=CallableSkillAdapter("never", lambda *_args: "bad"),
-    )
+    decision = router.route("今天北京天气怎么样")
 
-    assert result.decision.should_call is False
-    assert result.execution is None
+    assert decision.should_call is False
+    assert decision.skill_name is None
 
 
 @pytest.mark.parametrize(

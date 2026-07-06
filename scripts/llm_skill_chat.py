@@ -8,7 +8,7 @@ import json
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from _skill import CallableSkillAdapter, FileSkillDiscovery
+from _skill import FileSkillDiscovery
 from llm.skill_router import OpenAIChatSkillRouter, load_skill_env
 
 
@@ -28,19 +28,17 @@ def main() -> None:
 
     index = FileSkillDiscovery(skills_dir).discover()
     router = OpenAIChatSkillRouter(index, model=args.model)
-    adapter = CallableSkillAdapter("mock-adapter", lambda prompt, skill, context: f"called:{skill.name}")
-    result = router.route_and_execute(args.query, adapter=adapter, fields=fields)
+    decision = router.route(args.query, fields=fields)
 
     payload = {
         "decision": {
-            "should_call": result.decision.should_call,
-            "skill_name": result.decision.skill_name,
-            "confidence": result.decision.confidence,
-            "reason": result.decision.reason,
-            "fields": result.decision.fields,
+            "should_call": decision.should_call,
+            "skill_name": decision.skill_name,
+            "confidence": decision.confidence,
+            "reason": decision.reason,
+            "fields": decision.fields,
         },
         "routing_token_metrics": _format_token_metrics(router.last_token_metrics()),
-        "execution": _format_execution(result.execution),
     }
     print(json.dumps(payload, ensure_ascii=False, indent=2))
 
@@ -54,25 +52,6 @@ def _parse_fields(raw_fields: list[str]) -> dict[str, str]:
         key, value = item.split("=", 1)
         fields[key.strip()] = value.strip()
     return fields
-
-
-def _format_execution(execution: object | None) -> dict[str, object] | None:
-    """格式化执行结果。"""
-    if execution is None:
-        return None
-    return {
-        "output": execution.output,
-        "execution_success": execution.metrics.execution_success,
-        "adapter_name": execution.metrics.adapter_name,
-        "latency_ms": execution.metrics.latency_ms,
-        "token_metrics": {
-            "input_tokens": execution.metrics.token_metrics.input_tokens,
-            "output_tokens": execution.metrics.token_metrics.output_tokens,
-            "total_tokens": execution.metrics.token_metrics.total_tokens,
-            "overhead_pct": execution.metrics.token_metrics.overhead_pct,
-            "source": execution.metrics.token_metrics.source,
-        },
-    }
 
 
 def _format_token_metrics(metrics: object | None) -> dict[str, object] | None:

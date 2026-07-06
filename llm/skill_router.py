@@ -12,8 +12,8 @@ from urllib.parse import urlparse
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from core.executor import SkillExecutor, TokenTracker
-from _skill.models import ExecutionResult, SkillAdapter, SkillDefinition, SkillIndex, TokenMetrics
+from core.token_tracker import TokenTracker
+from _skill.models import SkillDefinition, SkillIndex, TokenMetrics
 from .schema import validate_llm_decision_payload
 from agent.field_extractor import extract_fields_from_query
 
@@ -28,14 +28,6 @@ class LLMSkillDecision:
     reason: str
     fields: dict[str, Any]
     raw_response: str
-
-
-@dataclass(frozen=True)
-class LLMSkillCallResult:
-    """大模型路由后，本地执行器的调用结果。"""
-
-    decision: LLMSkillDecision
-    execution: ExecutionResult | None
 
 
 class LLMRouterResponseError(RuntimeError):
@@ -88,28 +80,6 @@ class OpenAIChatSkillRouter:
     def last_token_metrics(self) -> TokenMetrics | None:
         """返回最近一次路由调用的真实 token 指标；供应商无 usage 时返回 None。"""
         return TokenTracker().build_actual_metrics(self.last_token_usage)
-
-    def route_and_execute(
-        self,
-        user_query: str,
-        *,
-        adapter: SkillAdapter,
-        fields: dict[str, Any] | None = None,
-    ) -> LLMSkillCallResult:
-        """让大模型选 skill，再由本地执行器完成调用。"""
-        decision = self.route(user_query, fields=fields)
-        if not decision.should_call or not decision.skill_name:
-            return LLMSkillCallResult(decision=decision, execution=None)
-
-        skill = self.index.get(decision.skill_name)
-        if skill is None:
-            return LLMSkillCallResult(decision=decision, execution=None)
-
-        merged_fields = {**(fields or {}), **decision.fields}
-        execution = SkillExecutor(self.index, adapter).execute(
-            skill, user_query=user_query, fields=merged_fields,
-        )
-        return LLMSkillCallResult(decision=decision, execution=execution)
 
     def _build_system_prompt(self) -> str:
         """构造只面向 skill 选择的系统提示 — 只包含 name + description（渐进披露）。"""

@@ -6,7 +6,7 @@ from _skill.models import ExecutionMetrics, TokenMetrics
 from core.runtime_metrics import RuntimeCollector
 
 
-def _metrics(adapter: str, total_tokens: int, latency_ms: float, success: bool = True) -> ExecutionMetrics:
+def _metrics(runner: str, total_tokens: int, latency_ms: float, success: bool = True) -> ExecutionMetrics:
     return ExecutionMetrics(
         token_metrics=TokenMetrics(
             input_tokens=total_tokens - 3,
@@ -15,14 +15,14 @@ def _metrics(adapter: str, total_tokens: int, latency_ms: float, success: bool =
             source="estimated",
         ),
         execution_success=success,
-        adapter_name=adapter,
+        runner_name=runner,
         latency_ms=latency_ms,
     )
 
 
 def test_token_tracker_builds_actual_metrics_from_usage_object() -> None:
     """TokenTracker 应能从 OpenAI usage 对象生成真实 token 指标。"""
-    from core.executor import TokenTracker
+    from core.token_tracker import TokenTracker
 
     class Usage:
         prompt_tokens = 12
@@ -40,7 +40,7 @@ def test_token_tracker_builds_actual_metrics_from_usage_object() -> None:
 
 def test_token_tracker_builds_actual_metrics_from_usage_dict() -> None:
     """TokenTracker 应兼容 dict 形式的 usage。"""
-    from core.executor import TokenTracker
+    from core.token_tracker import TokenTracker
 
     metrics = TokenTracker().build_actual_metrics({"input_tokens": 9, "output_tokens": 4})
 
@@ -52,11 +52,11 @@ def test_token_tracker_builds_actual_metrics_from_usage_dict() -> None:
 
 
 def test_runtime_collector_reports_execution_groups_and_latency() -> None:
-    """执行指标应支持总体、按 skill、按 adapter 分组统计。"""
+    """执行指标应支持总体、按 skill、按 runner 分组统计。"""
     collector = RuntimeCollector()
-    collector.record("simple-echo", _metrics("callable", 10, 1.0))
-    collector.record("simple-echo", _metrics("callable", 20, 3.0))
-    collector.record("document-generator", _metrics("word", 30, 5.0, success=False))
+    collector.record("simple-echo", _metrics("eval-runner", 10, 1.0))
+    collector.record("simple-echo", _metrics("eval-runner", 20, 3.0))
+    collector.record("document-generator", _metrics("word-tool", 30, 5.0, success=False))
 
     report = collector.report()
 
@@ -69,8 +69,9 @@ def test_runtime_collector_reports_execution_groups_and_latency() -> None:
     assert report["latency_ms"]["max"] == 5.0
     assert report["latency_ms"]["p50"] == 3.0
     assert report["by_skill"]["simple-echo"]["count"] == 2
-    assert report["by_adapter"]["callable"]["success_rate"] == 1.0
-    assert report["by_adapter"]["word"]["success_rate"] == 0.0
+    assert report["by_runner"]["eval-runner"]["success_rate"] == 1.0
+    assert report["by_runner"]["word-tool"]["success_rate"] == 0.0
+    assert report["by_adapter"] == report["by_runner"]
 
 
 def test_runtime_collector_reports_confusion_matrix() -> None:
@@ -175,7 +176,7 @@ def test_runtime_collector_p95_for_twenty_records() -> None:
     """记录数 >=20 时应计算 p95。"""
     collector = RuntimeCollector()
     for index in range(20):
-        collector.record("skill", _metrics("adapter", total_tokens=10 + index, latency_ms=float(index)))
+        collector.record("skill", _metrics("runner", total_tokens=10 + index, latency_ms=float(index)))
 
     report = collector.report()
 
@@ -197,15 +198,15 @@ def test_runtime_collector_skill_mismatch_counts_as_fp() -> None:
 
 
 def test_runtime_collector_large_record_set_groups_are_stable() -> None:
-    """较多记录下按 skill/adapter 分组应保持稳定。"""
+    """较多记录下按 skill/runner 分组应保持稳定。"""
     collector = RuntimeCollector()
     for index in range(100):
-        collector.record(f"skill-{index % 5}", _metrics(f"adapter-{index % 4}", 50 + index, float(index), success=index % 10 != 0))
+        collector.record(f"skill-{index % 5}", _metrics(f"runner-{index % 4}", 50 + index, float(index), success=index % 10 != 0))
 
     report = collector.report()
 
     assert report["total_executions"] == 100
     assert len(report["by_skill"]) == 5
-    assert len(report["by_adapter"]) == 4
+    assert len(report["by_runner"]) == 4
     assert report["success_count"] == 90
     assert report["success_rate"] == 0.9
