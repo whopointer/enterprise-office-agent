@@ -100,6 +100,33 @@ python3 scripts/run_routing_eval.py --output-dir test-results
 python3 scripts/run_skill_quality.py --output-dir test-results
 ```
 
+## 量化指标速览
+
+以下指标来自当前 `test-results/` 下的最新报告，用于快速判断系统状态，详细分析见 `docs/SKILL_SYSTEM_TEST_REPORT_2026-07-03.md`。
+
+| 评测项 | 样本/范围 | 最新结果 | 说明 |
+|--------|-----------|----------|------|
+| 大样本路由准确率 | 120 条真实 LLM 路由样本 | 90.8% | `routing-eval-report.*`，109/120 通过 |
+| 大样本路由 Precision | 120 条真实 LLM 路由样本 | 90.2% | TP=74, FP=8 |
+| 大样本路由 Recall | 120 条真实 LLM 路由样本 | 96.1% | TP=74, FN=3 |
+| QA 路由准确率 | 20 条 Render QA 样本 | 90.0% | TP=17, TN=1, FP=1, FN=1 |
+| QA 综合评分 | 20 条 Render QA 样本 | 76.0% | 加权包含路由、要素、本地质量、judge、语言、严重错误 |
+| QA 关键要素命中 | 20 条 Render QA 样本 | 69.6% | 检查必须出现的技术要点 |
+| QA 本地确定性质量 | 20 条 Render QA 样本 | 71.0% | 检查步骤顺序、配置、文档标准、禁用项等 |
+| QA LLM Judge 语义质量 | 20 条 Render QA 样本 | 64.8% | 判断技术正确性、问题解决度、隐蔽严重错误 |
+| QA 幻觉控制 | 20 条 Render QA 样本 | 100.0% | 未发现不存在的 `scripts/`、`references/`、`assets/` 引用 |
+| QA 严重错误控制 | 20 条 Render QA 样本 | 85.0% | 仍有 1 条严重问题样本 |
+| QA 执行成功率 | 17 次真实执行 | 100.0% | `OpenAICompatible` adapter 执行均成功 |
+| QA 路由 token | 20 次真实路由 | 平均 2102.8，总计 42056 | 来源为供应商 actual usage |
+| QA 执行 token | 17 次真实执行 | 平均 5129.1，总计 87194 | 来源为供应商 actual usage |
+| Skill 加载 | 21 个 skill | 0 加载错误 | `skill-quality-summary.*` |
+| Prompt 成本 | 21 个 skill | 路由 prompt 2046 token | 只注入 `name + description` |
+| 全量注入成本 | 21 个 skill | 约 60571 token | 若把所有 body 塞入 prompt 的估算成本 |
+| 渐进披露节省率 | 21 个 skill | 96.6% | 相比全量注入 |
+| 字段抽取质量 | 50 条字段样本 | Precision/Recall 100% | 当前明确字段表达样本 |
+
+当前结论：路由链路整体可用，skill 加载和 token 统计稳定；主要短板在 QA 输出质量，尤其是答案是否直接给出可执行方案、复杂配置是否真实可靠、相近部署 skill 的边界判断。
+
 ## SKILL.md 格式
 
 每个 skill 是一个目录，目录下必须包含 `SKILL.md`。
