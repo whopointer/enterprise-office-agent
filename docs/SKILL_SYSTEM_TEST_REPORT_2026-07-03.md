@@ -1,55 +1,74 @@
 # Skill 系统测试汇报报告
 
-> 日期：2026-07-03  
+> 原报告日期：2026-07-03  
+> 本次更新：2026-07-06  
 > 项目：enterprise-office-agent  
 > 数据来源：`test-results/test-report.*`、`test-results/quantitative-report.*`、`test-results/routing-eval-report.*`、`test-results/qa-report.*`、`test-results/skill-quality-summary.*`  
-> 测试口径：包含完整 pytest、真实 LLM 路由评测、QA 问答集评测和 skill 质量摘要
+> 测试口径：真实 LLM 路由评测、真实 LLM QA 问答集评测、运行时 token/latency 统计、skill 库质量摘要
 
 ## 1. 汇报结论
 
-本轮测试已经跑通完整 Skill 系统链路，包含本地单元/契约测试、真实 LLM 路由、真实 LLM QA 输出、prompt 成本和 token usage 统计。
+本轮重点重新测试了 Skill 系统在真实 LLM 下的路由和问答输出质量。系统链路可以跑通，路由整体可用，token usage 可以拿到真实供应商返回值；但在更严格的 QA 质量门禁下，部分答案被判定为不合格。
+
+需要特别说明：`tests/test_skill_qa.py` 当前不是“只验证脚本能不能跑”的冒烟测试，而是质量门禁测试。只要真实 LLM 输出没有直接解决用户问题、步骤不完整、配置不可执行、存在隐蔽严重错误，测试就会失败。因此本轮 QA 存在失败用例，说明质量判定机制生效，而不是测试框架无法运行。
 
 总体结论：
 
 | 方向 | 最新结果 | 判断 |
 |------|----------|------|
-| pytest 全量测试 | 139 条，139 通过 | 基础链路和契约稳定 |
-| 大样本 LLM 路由 | 120 条，109 通过 | 整体可用，复杂边界仍需优化 |
-| pytest 运行时路由 | 27 条，Accuracy 92.59% | 集成链路健康 |
-| QA 问答集 | 19 条有效输出记录，综合分 87.55% | 输出质量可用，但结构完整度有提升空间 |
-| Skill 库加载 | 21 个 skill，0 加载错误 | 真实 skill 库可稳定加载 |
+| QA 问答集测试 | 20 条样本，14 通过，7 failed test case，QA 综合分 76.0% | 链路可运行，输出质量仍需优化 |
+| QA 质量维度 | 已覆盖技术正确性、步骤顺序、配置可执行性、文档标准、问题解决度、隐蔽严重错误 | 质量门禁已建立 |
+| QA 路由准确率 | 90.0%，TP=17 / TN=1 / FP=1 / FN=1 | Render 场景整体可用，但仍有误路由和漏激活 |
+| QA 输出执行 | 17 次执行，17 次成功 | 执行链路稳定 |
+| QA Token 统计 | 路由 20 次 actual，执行 17 次 actual | 已接入真实 usage |
+| 大样本路由评测 | 120 条，109 通过，Case Accuracy 90.8% | 明确意图稳定，模糊/否定意图较弱 |
+| Skill 库加载 | 21 个 skill，0 加载错误 | skill 库可稳定发现和加载 |
+| Prompt 成本 | 路由 prompt 约 2046 token；全量 body 注入约 60571 token | 渐进披露节省约 96.6% |
 | 字段抽取 | 50 条，Precision/Recall 100% | 明确字段表达稳定 |
-| Token 统计 | 路由和执行均可记录 actual usage | 真实 token 统计已接入 |
 
-当前主要风险集中在三类：模糊意图、否定意图、相近 skill 边界。
+当前主要风险集中在三类：
+
+1. 真实 LLM 有时倾向于反问用户，而不是直接给出可执行方案。
+2. 模糊、否定、相近 skill 场景仍有误触发或漏激活。
+3. 复杂部署答案中可能出现配置可执行性或隐蔽严重错误。
 
 ## 2. 本轮执行命令
 
+本轮实际重新执行的核心测试命令：
+
 ```bash
-python3 -m pytest tests/ -v
-python3 scripts/run_routing_eval.py --output-dir test-results
-python3 scripts/run_skill_quality.py --output-dir test-results
+python3 -m pytest tests/test_skill_qa.py -v
 ```
 
-执行过程中出现 1 个非阻断警告：
+辅助验证命令：
+
+```bash
+python3 -m py_compile tests/test_skill_qa.py tests/test_qa_quality_eval.py evals/qa_quality.py
+python3 -m pytest tests/test_qa_quality_eval.py -q
+python3 -m pytest tests/test_skill_qa.py --collect-only -q
+```
+
+当前 `test-results/test-report.*` 对应的是 `tests/test_skill_qa.py` 的真实 LLM QA 测试，不是全量 `tests/` 测试。因此本报告不再沿用旧版“139 条全量 pytest 全通过”的结论。
+
+执行过程中仍出现以下非阻断警告：
 
 ```text
 skill name 'docx-report-generator' 与目录名 'word-report-generator-1.0.0' 不一致，建议保持一致
 ```
 
-该警告不影响加载和测试通过，但后续建议统一目录名，避免人工排查和评测数据混淆。
+该警告不影响加载和测试执行，但建议后续统一目录名和 skill name，减少评测和人工排查时的歧义。
 
 ## 3. 报告文件总览
 
-| 报告 | 位置 | 主要内容 |
+| 报告 | 位置 | 当前含义 |
 |------|------|----------|
-| pytest 汇总 | `test-results/test-report.md/json` | 139 条测试用例的通过率和耗时 |
-| 运行时量化 | `test-results/quantitative-report.md/json` | pytest 中显式记录的路由、执行、token、延迟 |
+| QA pytest 汇总 | `test-results/test-report.md/json` | 本轮 `tests/test_skill_qa.py` 的 21 个 pytest item 结果 |
+| 运行时量化 | `test-results/quantitative-report.md/json` | QA 运行中的路由、执行、token、延迟 |
+| QA 问答集 | `test-results/qa-report.md/json` | 20 条 Render QA 的输出质量评分和失败原因 |
 | 大样本路由 | `test-results/routing-eval-report.md/json` | 120 条真实 LLM 路由评测 |
-| QA 问答集 | `test-results/qa-report.md/json` | 真实输出质量、要素命中、语言一致性、幻觉检测 |
 | Skill 质量摘要 | `test-results/skill-quality-summary.md/json` | skill 库存、prompt 成本、字段抽取质量 |
 
-## 4. pytest 全量测试结果
+## 4. QA pytest 结果
 
 报告文件：
 
@@ -60,30 +79,106 @@ test-results/test-report.json
 
 | 指标 | 值 |
 |------|----|
-| 总用例 | 139 |
-| 通过 | 139 |
-| 失败 | 0 |
+| pytest item 总数 | 21 |
+| 通过 | 14 |
+| 失败 | 7 |
 | 跳过 | 0 |
 | 错误 | 0 |
-| 通过率 | 100.0% |
-| 退出码 | 0 |
-| 总耗时 | 373.58 秒 |
+| 通过率 | 66.7% |
+| 退出码 | 1 |
+| 报告时间 | 2026-07-06 08:02:20 UTC |
 
-覆盖范围：
+失败用例：
 
-| 模块 | 覆盖内容 |
+| 用例 | 主要失败类型 |
+|------|--------------|
+| QA-01 | 本地质量不足，judge 质量不足 |
+| QA-06 | judge 质量不足，存在严重问题 |
+| QA-09 | 本地质量不足，judge 质量不足 |
+| QA-10 | judge 质量不足 |
+| QA-14 | judge 质量不足 |
+| QA-18 | judge 质量不足，语言比例异常 |
+| QA-19 | 路由错误 |
+
+说明：这些失败表示真实 LLM 输出没有达到当前 QA 质量标准，并不表示测试脚本无法执行。`test_qa_summary_report` 已通过，说明测试过程能够完成汇总并落盘报告。
+
+## 5. QA 问答集评测
+
+报告文件：
+
+```text
+test-results/qa-report.md
+test-results/qa-report.json
+```
+
+### 5.1 综合指标
+
+| 指标 | 值 |
+|------|----|
+| 总用例数 | 20 |
+| 正例数 | 19 |
+| 实际执行答案数 | 17 |
+| 失败用例数 | 8 |
+| 路由准确率 | 90.0% |
+| 关键要素命中率 | 69.6% |
+| 本地确定性质量 | 71.0% |
+| LLM Judge 语义质量 | 64.8% |
+| 语言一致性 | 94.1% |
+| 幻觉控制 | 100.0% |
+| 严重错误控制 | 85.0% |
+| QA 加权总分 | 76.0% |
+
+### 5.2 质量判定维度
+
+当前 QA 不做标准答案全文比对，而是组合以下维度判定答案是否可靠：
+
+| 维度 | 判定方式 |
 |------|----------|
-| `_skill/` | Discovery、Parser、Prompt 注入、多 source、load warning、安全转义 |
-| `llm/` | LLM 路由、schema 校验、非法响应、幻觉 skill、confidence 规整、真实 token usage |
-| `core/` | SkillExecutor、TokenTracker、RuntimeCollector、混淆矩阵、p95、actual/estimated token |
-| `adapters/` | OpenAICompatible、LangChain、SpringAI、WordDocument、Callable |
-| `agent/` | 中文字段抽取 |
-| `evals/` | 路由评测数据集和 runner 的本地校验 |
-| `tests/test_skill_qa.py` | 真实 LLM 问答集评测 |
+| 技术正确性 | `technical_checks` + LLM judge 的 `technical_correctness` |
+| 步骤顺序 | `ordered_steps` + LLM judge 的 `step_order` |
+| 配置可执行性 | `config_checks` 解析配置块，例如 `render.yaml` |
+| 产物/方案文档标准 | `document_standard` 检查章节、长度、必备内容 |
+| 是否解决用户问题 | LLM judge 的 `problem_resolution` |
+| 隐蔽严重错误 | `forbidden`、`technical_checks.must_not_include`、LLM judge 的 `hidden_critical_errors` |
+| 幻觉引用 | 检查答案引用的 `scripts/`、`references/`、`assets/` 是否真实存在 |
 
-结论：基础设施、路由契约、执行器、适配器、报告生成链路均通过自动化测试。
+### 5.3 失败原因分布
 
-## 5. pytest 运行时量化报告
+| 失败原因 | 数量 | 说明 |
+|----------|------|------|
+| `judge_quality` | 6 | LLM judge 认为答案没有达到语义质量阈值 |
+| `local_quality` | 2 | 本地确定性规则未通过 |
+| `critical_issue` | 1 | 存在足以导致失败的严重问题 |
+| `missed_activation` | 1 | 应激活 skill 但未激活 |
+| `routing` | 1 | 路由到了错误 skill |
+| `language` | 1 | 中文比例异常或输出语言不符合预期 |
+
+### 5.4 失败样本摘要
+
+| ID | 状态 | 要素命中 | 本地质量 | Judge | 主要问题 |
+|----|------|----------|----------|-------|----------|
+| QA-01 | failed | 3/7 | 52% | 30% | 缺少 `PORT`、`npm`、`startCommand` 等关键部署要素，方案不完整 |
+| QA-06 | failed | 6/6 | 100% | 40% | 本地要素满足，但 judge 发现复杂 `render.yaml` 方案存在严重问题 |
+| QA-07 | missed_activation | 0/5 | 0% | 0% | 部署后验证场景未激活 `render-deploy` |
+| QA-09 | failed | 3/5 | 52% | 50% | Cron/schedule 场景答案不够可执行 |
+| QA-10 | failed | 2/5 | 69% | 40% | 静态站点部署方案不完整 |
+| QA-14 | failed | 6/6 | 67% | 0% | Rails + PostgreSQL + Sidekiq 场景没有给出足够可执行方案 |
+| QA-18 | failed | 4/6 | 71% | 30% | Go API + React 前端场景未直接解决问题，语言比例异常 |
+| QA-19 | routing_failed | 0/5 | 0% | 0% | `network timeout` 故障排查被路由到 `cloudflare-deploy` |
+
+### 5.5 QA Token 消耗
+
+| 指标 | 值 |
+|------|----|
+| 路由 Token 平均 | 2102.8 |
+| 路由 Token 总计 | 42056 |
+| 执行 Token 平均 | 5129.1 |
+| 执行 Token 总计 | 87194 |
+| Token 来源 | actual usage |
+
+结论：QA 链路可以稳定记录真实 token。当前主要问题不在 token 统计，而在答案质量和路由边界。
+
+## 6. pytest 运行时量化报告
 
 报告文件：
 
@@ -92,56 +187,51 @@ test-results/quantitative-report.md
 test-results/quantitative-report.json
 ```
 
-这份报告只统计 pytest 运行过程中 `RuntimeCollector` 显式记录的样本，不等同于 120 条大样本路由评测。
+这份报告只统计本轮 QA pytest 运行过程中 `RuntimeCollector` 显式记录的样本，不等同于 120 条大样本路由评测。
 
-### 5.1 路由健康检查
-
-| 指标 | 值 |
-|------|----|
-| 样本数 | 27 |
-| TP | 21 |
-| TN | 4 |
-| FP | 0 |
-| FN | 2 |
-| Accuracy | 92.59% |
-| Precision | 100.0% |
-| Recall | 91.30% |
-
-27 条样本包含 LLM 集成测试和 QA 问答集测试中的路由记录。两个 FN 来自 QA 用例中应激活 `render-deploy` 但模型未激活的样本。
-
-### 5.2 执行链路指标
+### 6.1 QA 路由混淆矩阵
 
 | 指标 | 值 |
 |------|----|
-| 执行次数 | 32 |
-| 成功次数 | 29 |
-| 成功率 | 90.62% |
-| Token 最小值 | 66 |
-| Token 最大值 | 6645 |
-| Token 平均值 | 2884.3 |
-| Token 总量 | 92298 |
-| Token 来源 | actual 18 次，estimated 14 次 |
-| 延迟最小值 | 0.0 ms |
-| 延迟最大值 | 29415.51 ms |
-| 延迟平均值 | 8483.29 ms |
-| 延迟 p50 | 5276.37 ms |
-| 延迟 p95 | 26723.8 ms |
+| 样本数 | 20 |
+| TP | 17 |
+| TN | 1 |
+| FP | 1 |
+| FN | 1 |
+| Accuracy | 90.0% |
+| Precision | 94.4% |
+| Recall | 94.4% |
 
-执行失败主要来自测试中故意构造的失败路径，例如无效 adapter、无效 SpringAI endpoint 等，用于验证异常兜底。
-
-### 5.3 路由 Token
+### 6.2 执行链路指标
 
 | 指标 | 值 |
 |------|----|
-| 路由 token 最小值 | 400 |
-| 路由 token 最大值 | 2375 |
-| 路由 token 平均值 | 1666.1 |
-| 路由 token 总量 | 44984 |
-| 路由 token 来源 | actual 27 次 |
+| 执行次数 | 17 |
+| 成功次数 | 17 |
+| 成功率 | 100.0% |
+| Token 最小值 | 4410 |
+| Token 最大值 | 6185 |
+| Token 平均值 | 5129.1 |
+| Token 总量 | 87194 |
+| Token 来源 | actual 17 次 |
+| 延迟最小值 | 3477.79 ms |
+| 延迟最大值 | 23892.03 ms |
+| 延迟平均值 | 12077.69 ms |
+| 延迟 p50 | 11035.78 ms |
 
-说明：本轮 pytest 中所有记录到的路由 token 都来自供应商返回的真实 `usage`。
+### 6.3 路由 Token
 
-## 6. 真实 LLM 大样本路由评测
+| 指标 | 值 |
+|------|----|
+| 路由 token 最小值 | 1946 |
+| 路由 token 最大值 | 2498 |
+| 路由 token 平均值 | 2102.8 |
+| 路由 token 总量 | 42056 |
+| 路由 token 来源 | actual 20 次 |
+
+说明：本轮 QA 中记录到的路由和执行 token 均来自供应商真实 `usage`。
+
+## 7. 真实 LLM 大样本路由评测
 
 报告文件：
 
@@ -156,18 +246,18 @@ test-results/routing-eval-report.json
 |------|----|
 | 总样本数 | 120 |
 | 通过样本数 | 109 |
-| Case Accuracy | 90.83% |
+| Case Accuracy | 90.8% |
 | TP | 74 |
 | TN | 35 |
 | FP | 8 |
 | FN | 3 |
-| Precision | 90.24% |
-| Recall | 96.10% |
-| 平均延迟 | 3158.64 ms |
-| 正确样本平均置信度 | 0.6514 |
-| 错误样本平均置信度 | 0.6318 |
+| Precision | 90.2% |
+| Recall | 96.1% |
+| 路由 Token 总消耗 | 250144 |
+| 路由 Token 单次平均 | 2084.5 |
+| Token 来源 | actual 120 次 |
 
-### 6.1 按类别
+### 7.1 按类别
 
 | Category | Count | Passed | Accuracy |
 |----------|------:|-------:|---------:|
@@ -179,47 +269,19 @@ test-results/routing-eval-report.json
 | `confusing_negative` | 20 | 16 | 80.0% |
 | `ambiguous` | 20 | 15 | 75.0% |
 
-明确意图的 `document_generation`、`deployment`、`field_noise` 表现稳定；准确率下降主要发生在 `ambiguous` 和 `confusing_negative`。
+明确意图的文档生成、部署和字段噪声样本表现稳定；准确率下降主要发生在 `ambiguous` 和 `confusing_negative`。
 
-### 6.2 按难度
+### 7.2 按难度
 
 | Difficulty | Count | Passed | Accuracy |
 |------------|------:|-------:|---------:|
 | `easy` | 50 | 49 | 98.0% |
-| `medium` | 30 | 29 | 96.67% |
+| `medium` | 30 | 29 | 96.7% |
 | `hard` | 40 | 31 | 77.5% |
 
-hard 样本是当前主要短板，说明复杂表达、否定表达和相近 skill 竞争仍需优化。
+hard 样本仍是主要短板，说明复杂表达、否定表达和相近 skill 竞争仍需优化。
 
-### 6.3 路由 Token
-
-| 指标 | 值 |
-|------|----|
-| 路由 token 最小值 | 1920 |
-| 路由 token 最大值 | 2733 |
-| 路由 token 平均值 | 2084.5 |
-| 路由 token 总量 | 250144 |
-| 路由 token 来源 | actual 120 次 |
-
-本轮大样本路由评测的 token 全部来自供应商真实 `usage`。
-
-### 6.4 失败样本
-
-| ID | Query | Expected | Actual | 问题类型 |
-|----|-------|----------|--------|----------|
-| ROUTE-046 | 生成语音识别处理方案 | `speech` | `-` | FN，未激活 |
-| ROUTE-066 | 生成一个健身计划 | `-` | `docx-report-generator` | FP，无关请求误触发 |
-| ROUTE-077 | 帮我生成部署检查清单 | `docx-report-generator` | `-` | FN，模糊文档请求未激活 |
-| ROUTE-081 | 给这个项目写发布文档 | `docx-report-generator` | `documents` | 文档类 skill 混淆 |
-| ROUTE-085 | 帮我输出 render.yaml 说明文档 | `docx-report-generator` | `render-deploy` | 文档生成与部署 skill 混淆 |
-| ROUTE-088 | 做一份部署 SOP 文档 | `docx-report-generator` | `documents` | 文档类 skill 混淆 |
-| ROUTE-090 | 帮我整理发布流程 | `docx-report-generator` | `-` | FN，模糊表达未激活 |
-| ROUTE-093 | 帮我看一下这个 report.pdf，不要生成 Word | `-` | `pdf` | FP，否定意图误触发 |
-| ROUTE-097 | 帮我审查部署脚本，不要上线 | `-` | `security-best-practices` | FP，否定意图误触发 |
-| ROUTE-099 | 我想创建一个叫 RenderReport 的类 | `-` | `docx-report-generator` | FP，关键词误触发 |
-| ROUTE-107 | 我想把文档部署到网站上 | `-` | `cloudflare-deploy` | FP，负例误触发 |
-
-混淆对统计：
+### 7.3 混淆对
 
 | Pair | Count |
 |------|------:|
@@ -232,40 +294,7 @@ hard 样本是当前主要短板，说明复杂表达、否定表达和相近 sk
 | `docx-report-generator -> render-deploy` | 1 |
 | `speech -> -` | 1 |
 
-## 7. QA 问答集评测
-
-报告文件：
-
-```text
-test-results/qa-report.md
-test-results/qa-report.json
-```
-
-说明：pytest 中实际跑了 QA-01 到 QA-20。`qa-report` 汇总了 19 条有效输出质量记录；其中阴性对照样本只参与路由/拒绝判断，没有进入输出质量明细。
-
-| 指标 | 值 |
-|------|----|
-| 有效记录数 | 19 |
-| 路由准确率 | 89.47% |
-| 结构完整度 | 72.55% |
-| 语言一致性 | 89.47% |
-| 幻觉控制 | 100.0% |
-| 路由 token 平均值 | 2090.6 |
-| 路由 token 总量 | 39722 |
-| 执行 token 平均值 | 4783.1 |
-| 执行 token 总量 | 90879 |
-| 综合评分 | 87.55% |
-
-### 7.1 QA 主要问题
-
-| 问题 | 表现 |
-|------|------|
-| 路由 FN | QA-07、QA-19 未激活 `render-deploy` |
-| 结构要素漏项 | QA-01、QA-04、QA-10、QA-15、QA-18 等存在 expected elements 未命中 |
-| 中文比例偏低 | 部分输出混入大量英文配置项，中文比例低于预期 |
-| 幻觉引用 | 当前未发现，幻觉控制 100% |
-
-结论：QA 输出整体可用，但结构完整度只有 72.55%，说明仅“选对 skill”还不够，后续需要加强输出结构约束和关键要素覆盖。
+路由层面的主要改进方向是减少负例误触发、减少文档类 skill 之间的竞争误判，并提升模糊表达下的激活稳定性。
 
 ## 8. Skill 质量摘要
 
@@ -289,85 +318,105 @@ test-results/skill-quality-summary.json
 | description 平均长度 | 313.0 字符 |
 | body 平均长度 | 11100.6 字符 |
 
+结论：真实 skill 库可以稳定发现和加载，没有加载错误。
+
 ### 8.2 Prompt 成本
 
 | 指标 | 值 |
 |------|----|
-| 路由 prompt 字符数 | 7924 |
 | 路由 prompt token | 2046 |
 | description token | 1682 |
-| body token 总量 | 58525 |
-| 全量加载 token | 60571 |
-| 渐进披露节省率 | 96.62% |
+| body token | 58525 |
+| 全量注入 token | 60571 |
+| 渐进披露节省率 | 96.6% |
 
-结论：渐进披露有效。路由阶段只注入轻量 catalog，如果全量加载所有 body，token 成本会显著放大。
+结论：只把 skill 的 name 和 description 注入路由 prompt 是必要的。如果把全部 `SKILL.md` body 一次性塞入 prompt，成本会从约 2046 token 增加到约 60571 token，不适合作为默认策略。
 
-### 8.3 字段抽取质量
+### 8.3 字段抽取
 
 | 指标 | 值 |
 |------|----|
-| 样本数 | 50 |
-| Exact Match Rate | 100.0% |
+| 用例数 | 50 |
+| 完全匹配率 | 100.0% |
 | Precision | 100.0% |
 | Recall | 100.0% |
 
-覆盖字段：
+说明：字段抽取结果来自当前数据集中的明确字段表达。它证明规则在这些样本上稳定，但不代表任意自然语言字段抽取都已经充分泛化。
 
-| 字段 | 示例 |
-|------|------|
-| `filename` | `weekly.docx`、`reports/q2.docx` |
-| `template_name` | `standard-report`、`finance-v1` |
-| `title` | `项目周报`、`Q2经营分析` |
-| `output_path` | `output/monthly.pdf`、`dist/report.docx` |
-| `date` | `2026-07-03`、`2026年07月03日` |
-| `report_type` | `周报`、`季报` |
-| `format` | `docx`、`pdf`、`markdown` |
-| `language` | `中文`、`英文`、`中英双语` |
+## 9. 本轮测试暴露的问题
 
-说明：当前字段抽取对明确表达稳定，但隐式字段、跨句字段和更复杂自然语言表达仍需扩充样本。
+### 9.1 QA 输出质量问题
 
-## 9. 当前完成度
+最明显的问题是部分回答没有直接解决用户问题，而是先追问更多信息。对于真实助手体验，这种行为不一定永远错误；但在当前 QA 标准中，用户问“怎么部署”时，答案至少应给出可执行的默认方案、配置示例、验证方法和必要假设。
 
-| 能力 | 状态 | 说明 |
-|------|------|------|
-| Skill Discovery | 已完成 | 21 个真实 skill，0 加载错误 |
-| Skill 路由 | 已完成基础评测 | 120 条真实 LLM 样本，Accuracy 90.83% |
-| Skill 执行 | 已完成链路测试 | prompt 构建、adapter 调用、失败兜底均覆盖 |
-| Adapter contract | 已覆盖 | OpenAI、LangChain、SpringAI、Word、Callable |
-| Token 统计 | 已支持 | 路由和执行均优先记录供应商 actual usage |
-| Runtime 报告 | 已支持 | pytest 自动落盘 test-report 和 quantitative-report |
-| 大样本评测 | 已支持 | 独立脚本生成 routing-eval-report |
-| QA 输出质量 | 已初步支持 | 19 条有效输出质量记录，综合分 87.55% |
+典型失败：
 
-## 10. 风险与改进建议
+- QA-01：Express 部署缺少 `PORT`、`npm`、`startCommand` 等关键要素。
+- QA-09：Cron job 场景缺少足够可执行的 schedule/配置说明。
+- QA-14：Rails + PostgreSQL + Sidekiq 场景回答不够完整。
+- QA-18：Go API + React 前端场景没有直接给出部署方案。
 
-| 风险 | 当前表现 | 建议 |
-|------|----------|------|
-| 模糊表达下路由准确率下降 | ambiguous 20 条通过 15 条 | 强化 skill description 边界，增加 hard/ambiguous 样本 |
-| 否定意图误触发 | `不要生成 Word`、`不要上线` 仍可能触发 skill | 增加否定意图识别或路由后校验 |
-| 相近 skill 竞争 | `documents` vs `docx-report-generator`、部署文档 vs `render-deploy` | 明确 skill 职责边界，必要时增加二次判别 |
-| 关键词误触发 | `RenderReport` 误触发文档生成 | 对专有名词、类名、解释类 query 增加负例训练/评测 |
-| QA 结构完整度不足 | element_hit_rate 72.55% | 执行 prompt 中强化必须覆盖的输出结构 |
-| `docx-report-generator` 命名不一致 | 目录名与 `SKILL.md` name 不一致 | 统一目录名或在文档中明确映射 |
-| 长跑脚本无进度 | `run_routing_eval.py` 120 条执行期间无逐条输出 | 增加每 N 条进度日志 |
+### 9.2 路由边界问题
 
-## 11. 下一阶段计划
+QA-19 中 `network timeout` 故障排查被路由到 `cloudflare-deploy`，说明部署类 skill 之间还存在相近场景竞争。大样本路由评测也显示 hard 样本准确率只有 77.5%，主要问题集中在模糊表达和否定表达。
 
-建议优先推进：
+### 9.3 复杂配置正确性问题
 
-1. 针对 11 条大样本失败用例优化 skill description 和路由 prompt。
-2. 增加否定意图后处理，覆盖“不用、不要、不是、仅解释、只是了解”等表达。
-3. 扩充 QA 问答集，按 skill 类型分别评估输出结构完整度。
-4. 给 `run_routing_eval.py` 增加进度输出和失败重试策略。
-5. 统一 `docx-report-generator` 的目录名与 skill name。
-6. 后续在 skill 数量扩大后，引入 BM25 或向量召回，先缩小候选集再交给 LLM 路由。
+QA-06 本地检查得分 100%，但 LLM judge 给出 40%，并标记严重问题。这说明只靠关键词或 YAML 结构检查不足以判断复杂配置是否真正可执行，LLM-as-judge 或更强的配置验证器是必要的。
 
-## 12. 附录：报告路径
+### 9.4 测试报告口径问题已修正
 
-```text
-test-results/test-report.md
-test-results/quantitative-report.md
-test-results/routing-eval-report.md
-test-results/qa-report.md
-test-results/skill-quality-summary.md
-```
+此前 QA 报告可能只统计有效输出，不完整覆盖负例、漏激活、路由错判或供应商异常。当前脚本已经把这些情况纳入 `_qa_results`，并在报告里通过 `status` 和 `failure_reasons` 区分。
+
+## 10. 改进建议
+
+### 10.1 优先优化 Render deploy skill 的回答策略
+
+建议在 `render-deploy` 的 skill 指令中明确：
+
+1. 用户信息不足时，也要先给出基于常见假设的可执行默认方案。
+2. 追问应放在答案末尾，不能替代方案本身。
+3. 部署类答案必须包含前提、配置、部署、验证、排错。
+4. 涉及 `render.yaml` 时必须给出可执行字段，避免伪配置。
+
+### 10.2 强化路由负例和相近 skill 判别
+
+建议增加以下路由约束：
+
+1. 对“不要生成”“不要部署”“只是命名”等否定意图提高拒绝优先级。
+2. 对 `render-deploy`、`cloudflare-deploy`、`documents`、`docx-report-generator` 增加边界描述。
+3. 对故障排查类 query 明确优先匹配对应平台 skill，而不是按关键词误触发其他部署 skill。
+
+### 10.3 增强配置验证
+
+当前 `config_checks` 已能解析 YAML 结构，但复杂配置还需要更强验证：
+
+1. 对 Render service type、runtime、env、startCommand、buildCommand 做字段级校验。
+2. 对 PostgreSQL、Redis、worker、cron 场景做组合规则校验。
+3. 对密钥、环境变量、端口绑定做安全规则校验。
+
+### 10.4 固化 QA 报告为质量门禁
+
+建议后续把 QA 报告作为质量趋势数据，而不是只看 pytest pass/fail：
+
+| 指标 | 建议门槛 |
+|------|----------|
+| 路由准确率 | 不低于 95% |
+| 本地确定性质量 | 不低于 80% |
+| LLM Judge 语义质量 | 不低于 80% |
+| 严重错误控制 | 100% |
+| 幻觉控制 | 100% |
+
+当前 QA 加权总分为 76.0%，距离稳定可用还有提升空间。
+
+## 11. 最终结论
+
+本轮重新测试后，Skill 系统的基础链路已经具备可测性和可观测性：
+
+- skill 加载正常，21 个 skill 无加载错误。
+- 路由 prompt 使用渐进披露，成本控制合理。
+- 路由和执行 token 均能获取真实供应商 usage。
+- 120 条路由大样本达到 90.8% case accuracy。
+- QA 测试已经能从技术正确性、步骤顺序、配置可执行性、文档标准、问题解决度、隐蔽严重错误等维度判断答案质量。
+
+但从真实使用角度看，当前 QA 输出质量还没有达到稳定交付标准。主要问题不是链路跑不通，而是部分 skill 输出没有足够直接、完整、可执行。下一阶段应优先优化 `render-deploy` 的回答策略、复杂配置校验和相近 skill 路由边界。

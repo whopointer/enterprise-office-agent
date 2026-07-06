@@ -1,22 +1,2048 @@
 [
-  {"id":"QA-01","query":"帮我部署一个 Node.js Express 应用到 Render","expected_skill":"render-deploy","expected_elements":["Node","Express","部署","PORT","免费","npm","startCommand"],"element_count":7,"difficulty":"simple","description":"单服务部署"},
-  {"id":"QA-02","query":"我有一个 Python Django 项目，想部署到 Render 上，还需要一个 PostgreSQL 数据库","expected_skill":"render-deploy","expected_elements":["Django","Python","PostgreSQL","数据库","DATABASE_URL","环境变量"],"element_count":6,"difficulty":"simple","description":"带数据库部署"},
-  {"id":"QA-03","query":"帮我部署一个 Go API 服务，用 Docker 镜像的方式","expected_skill":"render-deploy","expected_elements":["Docker","镜像","runtime","image","Go"],"element_count":5,"difficulty":"medium","description":"Docker 镜像部署"},
-  {"id":"QA-04","query":"我的项目有前端 React 和后端 Express API，怎么一起部署到 Render","expected_skill":"render-deploy","expected_elements":["React","Express","Blueprint","render.yaml","多服务"],"element_count":5,"difficulty":"medium","description":"多服务 Blueprint"},
-  {"id":"QA-05","query":"部署到 Render 需要什么前提条件？我的代码还没推到 GitHub","expected_skill":"render-deploy","expected_elements":["Git","push","GitHub","remote","仓库"],"element_count":5,"difficulty":"simple","description":"前提条件检查"},
-  {"id":"QA-06","query":"帮我生成一个 render.yaml 文件，我的应用是 Next.js + PostgreSQL + Redis + 后台 worker","expected_skill":"render-deploy","expected_elements":["Next","PostgreSQL","Redis","worker","render.yaml","BluePrint"],"element_count":6,"difficulty":"hard","description":"复杂多服务 Blueprint"},
-  {"id":"QA-07","query":"部署完成后怎么看我的应用是否正常运行","expected_skill":"render-deploy","expected_elements":["live","日志","health","端口","部署"],"element_count":5,"difficulty":"simple","description":"部署后验证"},
-  {"id":"QA-08","query":"我的 Render 部署失败了，日志显示端口绑定错误","expected_skill":"render-deploy","expected_elements":["端口","PORT","0.0.0.0","startCommand","启动命令"],"element_count":5,"difficulty":"medium","description":"端口绑定排查"},
-  {"id":"QA-09","query":"帮我在 Render 上创建一个定时任务，每天早上 6 点运行数据清理脚本","expected_skill":"render-deploy","expected_elements":["cron","定时","schedule","6","脚本"],"element_count":5,"difficulty":"medium","description":"Cron job"},
-  {"id":"QA-10","query":"部署一个纯静态网站到 Render","expected_skill":"render-deploy","expected_elements":["static","静态","HTML","CDN","publishPath"],"element_count":5,"difficulty":"simple","description":"静态网站"},
-  {"id":"QA-11","query":"我的 Render API key 在哪里获取","expected_skill":"render-deploy","expected_elements":["API","key","Dashboard","settings","rnd_"],"element_count":5,"difficulty":"simple","description":"API key 获取"},
-  {"id":"QA-12","query":"帮我验证一下我刚写的 render.yaml 有没有语法错误","expected_skill":"render-deploy","expected_elements":["blueprints","validate","YAML","验证","语法"],"element_count":5,"difficulty":"simple","description":"render.yaml 验证"},
-  {"id":"QA-13","query":"今天天气怎么样","expected_skill":null,"expected_elements":[],"element_count":0,"difficulty":"simple","description":"阴性对照"},
-  {"id":"QA-14","query":"我要部署一个 Ruby on Rails 单体应用，需要 PostgreSQL 和 Sidekiq worker","expected_skill":"render-deploy","expected_elements":["Ruby","Rails","PostgreSQL","Sidekiq","worker","web"],"element_count":6,"difficulty":"hard","description":"Rails 复杂部署"},
-  {"id":"QA-15","query":"render.yaml 写好了，已经 push 到 GitHub，下一步怎么做","expected_skill":"render-deploy","expected_elements":["Dashboard","deeplink","push","Apply","OAuth"],"element_count":5,"difficulty":"medium","description":"Blueprint 最后步骤"},
-  {"id":"QA-16","query":"我不想用 render.yaml，能直接在 Render 上创建一个服务吗","expected_skill":"render-deploy","expected_elements":["MCP","Direct","list_services","Git","remote"],"element_count":5,"difficulty":"medium","description":"Direct Creation"},
-  {"id":"QA-17","query":"我的项目里有敏感的环境变量，比如 JWT_SECRET 和 API_KEY，render.yaml 里怎么处理","expected_skill":"render-deploy","expected_elements":["sync","false","secret","Dashboard","envVar","不写入"],"element_count":6,"difficulty":"simple","description":"敏感环境变量"},
-  {"id":"QA-18","query":"部署一个 Go API 服务 + React 前端，都用 free plan，不需要数据库","expected_skill":"render-deploy","expected_elements":["Go","React","free","web","static","前端"],"element_count":6,"difficulty":"medium","description":"前后端双服务"},
-  {"id":"QA-19","query":"部署失败报 network timeout，怎么办","expected_skill":"render-deploy","expected_elements":["network","timeout","escalated","permission","重试"],"element_count":5,"difficulty":"simple","description":"网络超时"},
-  {"id":"QA-20","query":"我在多个 Render workspace 之间切换，怎么看当前是哪个 workspace","expected_skill":"render-deploy","expected_elements":["workspace","current","切换","list_workspaces","selected"],"element_count":5,"difficulty":"medium","description":"Workspace 管理"}
+  {
+    "id": "QA-01",
+    "query": "帮我部署一个 Node.js Express 应用到 Render",
+    "expected_skill": "render-deploy",
+    "difficulty": "simple",
+    "description": "单服务部署",
+    "category": "deployment",
+    "turns": [
+      "帮我部署一个 Node.js Express 应用到 Render"
+    ],
+    "expected_activation": true,
+    "must_include": [
+      "Node",
+      "Express",
+      "部署",
+      "PORT",
+      "免费",
+      "npm",
+      "startCommand"
+    ],
+    "should_include": [],
+    "forbidden": [
+      "伪造 API key",
+      "硬编码密钥",
+      "提交密钥",
+      "固定 3000 端口即可",
+      "忽略 PORT"
+    ],
+    "allowed_references": [],
+    "ordered_steps": [
+      {
+        "any": [
+          "代码",
+          "GitHub",
+          "仓库"
+        ]
+      },
+      {
+        "any": [
+          "Build Command",
+          "buildCommand",
+          "npm install"
+        ]
+      },
+      {
+        "any": [
+          "Start Command",
+          "startCommand",
+          "npm start"
+        ]
+      },
+      {
+        "any": [
+          "PORT",
+          "端口"
+        ]
+      },
+      {
+        "any": [
+          "部署",
+          "Deploy"
+        ]
+      }
+    ],
+    "technical_checks": [
+      {
+        "id": "express_port",
+        "must_include_any": [
+          "PORT",
+          "process.env.PORT"
+        ],
+        "must_not_include": [
+          "固定 3000",
+          "localhost:3000"
+        ]
+      },
+      {
+        "id": "node_start",
+        "must_include_any": [
+          "npm start",
+          "startCommand",
+          "node"
+        ],
+        "must_not_include": [
+          "不用启动命令"
+        ]
+      }
+    ],
+    "config_checks": [],
+    "document_standard": {
+      "min_sections": 3,
+      "min_chars": 200,
+      "required_sections_any": [
+        "前提",
+        "配置",
+        "部署",
+        "验证"
+      ]
+    },
+    "artifact_expectation": {
+      "required": false
+    },
+    "judge_rubric": {
+      "technical_correctness": "是否符合 Render 部署、环境变量、端口、服务类型、数据库/worker 等真实技术规则。",
+      "step_order": "是否按前提检查、配置、部署、验证/排错的合理顺序回答。",
+      "config_executability": "涉及 render.yaml 或命令时，配置字段是否可执行且不是伪配置。",
+      "problem_resolution": "是否直接解决用户场景，而不是泛泛解释 Render。",
+      "hidden_critical_errors": "是否存在严重误导，如硬编码密钥、忽略 PORT、错误服务类型、错误数据库连接方式。",
+      "document_standard": "如果回答是方案/文档，结构是否清楚，章节是否完整，可作为交付说明。"
+    },
+    "quality_thresholds": {
+      "local_score": 0.65,
+      "judge_score": 0.7,
+      "components": {
+        "forbidden": 1.0,
+        "hallucination_free": 1.0
+      }
+    },
+    "notes": "扩展 QA schema：同时评估技术正确性、步骤顺序、配置可执行性、问题解决度、隐藏严重错误和文档标准。"
+  },
+  {
+    "id": "QA-02",
+    "query": "我有一个 Python Django 项目，想部署到 Render 上，还需要一个 PostgreSQL 数据库",
+    "expected_skill": "render-deploy",
+    "difficulty": "simple",
+    "description": "带数据库部署",
+    "category": "deployment",
+    "turns": [
+      "我有一个 Python Django 项目，想部署到 Render 上，还需要一个 PostgreSQL 数据库"
+    ],
+    "expected_activation": true,
+    "must_include": [
+      "Django",
+      "Python",
+      "PostgreSQL",
+      "数据库",
+      "DATABASE_URL",
+      "环境变量"
+    ],
+    "should_include": [],
+    "forbidden": [
+      "伪造 API key",
+      "硬编码密钥",
+      "提交密钥",
+      "固定 3000 端口即可",
+      "忽略 PORT"
+    ],
+    "allowed_references": [],
+    "ordered_steps": [
+      {
+        "any": [
+          "GitHub",
+          "仓库"
+        ]
+      },
+      {
+        "any": [
+          "PostgreSQL",
+          "数据库"
+        ]
+      },
+      {
+        "any": [
+          "DATABASE_URL",
+          "环境变量"
+        ]
+      },
+      {
+        "any": [
+          "migrate",
+          "迁移"
+        ]
+      },
+      {
+        "any": [
+          "部署",
+          "验证"
+        ]
+      }
+    ],
+    "technical_checks": [
+      {
+        "id": "django_db",
+        "must_include": [
+          "DATABASE_URL"
+        ],
+        "must_include_any": [
+          "migrate",
+          "迁移"
+        ]
+      },
+      {
+        "id": "env_var",
+        "must_include_any": [
+          "环境变量",
+          "envVars",
+          "DATABASE_URL"
+        ]
+      }
+    ],
+    "config_checks": [],
+    "document_standard": {
+      "min_sections": 3,
+      "min_chars": 200,
+      "required_sections_any": [
+        "数据库",
+        "环境变量",
+        "迁移",
+        "验证"
+      ]
+    },
+    "artifact_expectation": {
+      "required": false
+    },
+    "judge_rubric": {
+      "technical_correctness": "是否符合 Render 部署、环境变量、端口、服务类型、数据库/worker 等真实技术规则。",
+      "step_order": "是否按前提检查、配置、部署、验证/排错的合理顺序回答。",
+      "config_executability": "涉及 render.yaml 或命令时，配置字段是否可执行且不是伪配置。",
+      "problem_resolution": "是否直接解决用户场景，而不是泛泛解释 Render。",
+      "hidden_critical_errors": "是否存在严重误导，如硬编码密钥、忽略 PORT、错误服务类型、错误数据库连接方式。",
+      "document_standard": "如果回答是方案/文档，结构是否清楚，章节是否完整，可作为交付说明。"
+    },
+    "quality_thresholds": {
+      "local_score": 0.65,
+      "judge_score": 0.7,
+      "components": {
+        "forbidden": 1.0,
+        "hallucination_free": 1.0
+      }
+    },
+    "notes": "扩展 QA schema：同时评估技术正确性、步骤顺序、配置可执行性、问题解决度、隐藏严重错误和文档标准。"
+  },
+  {
+    "id": "QA-03",
+    "query": "帮我部署一个 Go API 服务，用 Docker 镜像的方式",
+    "expected_skill": "render-deploy",
+    "difficulty": "medium",
+    "description": "Docker 镜像部署",
+    "category": "deployment",
+    "turns": [
+      "帮我部署一个 Go API 服务，用 Docker 镜像的方式"
+    ],
+    "expected_activation": true,
+    "must_include": [
+      "Docker",
+      "镜像",
+      "runtime",
+      "image",
+      "Go"
+    ],
+    "should_include": [],
+    "forbidden": [
+      "伪造 API key",
+      "硬编码密钥",
+      "提交密钥",
+      "固定 3000 端口即可",
+      "忽略 PORT"
+    ],
+    "allowed_references": [],
+    "ordered_steps": [
+      {
+        "any": [
+          "Dockerfile",
+          "镜像"
+        ]
+      },
+      {
+        "any": [
+          "runtime",
+          "image"
+        ]
+      },
+      {
+        "any": [
+          "端口",
+          "PORT"
+        ]
+      },
+      {
+        "any": [
+          "部署",
+          "Deploy"
+        ]
+      }
+    ],
+    "technical_checks": [
+      {
+        "id": "docker_image",
+        "must_include_any": [
+          "Dockerfile",
+          "runtime: image",
+          "image"
+        ]
+      },
+      {
+        "id": "port",
+        "must_include_any": [
+          "PORT",
+          "端口"
+        ]
+      }
+    ],
+    "config_checks": [],
+    "document_standard": {
+      "min_sections": 3,
+      "min_chars": 200,
+      "required_sections_any": [
+        "镜像",
+        "配置",
+        "部署",
+        "验证"
+      ]
+    },
+    "artifact_expectation": {
+      "required": false
+    },
+    "judge_rubric": {
+      "technical_correctness": "是否符合 Render 部署、环境变量、端口、服务类型、数据库/worker 等真实技术规则。",
+      "step_order": "是否按前提检查、配置、部署、验证/排错的合理顺序回答。",
+      "config_executability": "涉及 render.yaml 或命令时，配置字段是否可执行且不是伪配置。",
+      "problem_resolution": "是否直接解决用户场景，而不是泛泛解释 Render。",
+      "hidden_critical_errors": "是否存在严重误导，如硬编码密钥、忽略 PORT、错误服务类型、错误数据库连接方式。",
+      "document_standard": "如果回答是方案/文档，结构是否清楚，章节是否完整，可作为交付说明。"
+    },
+    "quality_thresholds": {
+      "local_score": 0.65,
+      "judge_score": 0.7,
+      "components": {
+        "forbidden": 1.0,
+        "hallucination_free": 1.0
+      }
+    },
+    "notes": "扩展 QA schema：同时评估技术正确性、步骤顺序、配置可执行性、问题解决度、隐藏严重错误和文档标准。"
+  },
+  {
+    "id": "QA-04",
+    "query": "我的项目有前端 React 和后端 Express API，怎么一起部署到 Render",
+    "expected_skill": "render-deploy",
+    "difficulty": "medium",
+    "description": "多服务 Blueprint",
+    "category": "deployment",
+    "turns": [
+      "我的项目有前端 React 和后端 Express API，怎么一起部署到 Render"
+    ],
+    "expected_activation": true,
+    "must_include": [
+      "React",
+      "Express",
+      "Blueprint",
+      "render.yaml",
+      "多服务"
+    ],
+    "should_include": [],
+    "forbidden": [
+      "伪造 API key",
+      "硬编码密钥",
+      "提交密钥",
+      "固定 3000 端口即可",
+      "忽略 PORT"
+    ],
+    "allowed_references": [],
+    "ordered_steps": [
+      {
+        "any": [
+          "前端",
+          "React"
+        ]
+      },
+      {
+        "any": [
+          "后端",
+          "Express"
+        ]
+      },
+      {
+        "any": [
+          "render.yaml",
+          "Blueprint"
+        ]
+      },
+      {
+        "any": [
+          "环境变量",
+          "路由"
+        ]
+      },
+      {
+        "any": [
+          "部署",
+          "验证"
+        ]
+      }
+    ],
+    "technical_checks": [
+      {
+        "id": "multi_service",
+        "must_include_any": [
+          "多服务",
+          "services",
+          "web service",
+          "static site",
+          "worker"
+        ]
+      },
+      {
+        "id": "blueprint",
+        "must_include_any": [
+          "Blueprint",
+          "render.yaml",
+          "services"
+        ]
+      }
+    ],
+    "config_checks": [
+      {
+        "id": "render_yaml_shape",
+        "type": "render_yaml",
+        "required": false,
+        "required_service_fields": [
+          "type",
+          "name"
+        ],
+        "must_include": [
+          "services"
+        ]
+      }
+    ],
+    "document_standard": {
+      "min_sections": 3,
+      "min_chars": 200,
+      "required_sections_any": [
+        "前端",
+        "后端",
+        "Blueprint",
+        "验证"
+      ]
+    },
+    "artifact_expectation": {
+      "required": false
+    },
+    "judge_rubric": {
+      "technical_correctness": "是否符合 Render 部署、环境变量、端口、服务类型、数据库/worker 等真实技术规则。",
+      "step_order": "是否按前提检查、配置、部署、验证/排错的合理顺序回答。",
+      "config_executability": "涉及 render.yaml 或命令时，配置字段是否可执行且不是伪配置。",
+      "problem_resolution": "是否直接解决用户场景，而不是泛泛解释 Render。",
+      "hidden_critical_errors": "是否存在严重误导，如硬编码密钥、忽略 PORT、错误服务类型、错误数据库连接方式。",
+      "document_standard": "如果回答是方案/文档，结构是否清楚，章节是否完整，可作为交付说明。"
+    },
+    "quality_thresholds": {
+      "local_score": 0.65,
+      "judge_score": 0.7,
+      "components": {
+        "forbidden": 1.0,
+        "hallucination_free": 1.0
+      }
+    },
+    "notes": "扩展 QA schema：同时评估技术正确性、步骤顺序、配置可执行性、问题解决度、隐藏严重错误和文档标准。"
+  },
+  {
+    "id": "QA-05",
+    "query": "部署到 Render 需要什么前提条件？我的代码还没推到 GitHub",
+    "expected_skill": "render-deploy",
+    "difficulty": "simple",
+    "description": "前提条件检查",
+    "category": "deployment",
+    "turns": [
+      "部署到 Render 需要什么前提条件？我的代码还没推到 GitHub"
+    ],
+    "expected_activation": true,
+    "must_include": [
+      "Git",
+      "push",
+      "GitHub",
+      "remote",
+      "仓库"
+    ],
+    "should_include": [],
+    "forbidden": [
+      "伪造 API key",
+      "硬编码密钥",
+      "提交密钥",
+      "固定 3000 端口即可",
+      "忽略 PORT"
+    ],
+    "allowed_references": [],
+    "ordered_steps": [
+      {
+        "any": [
+          "Git",
+          "代码"
+        ]
+      },
+      {
+        "any": [
+          "push",
+          "GitHub"
+        ]
+      },
+      {
+        "any": [
+          "仓库",
+          "remote"
+        ]
+      },
+      {
+        "any": [
+          "Render",
+          "连接"
+        ]
+      }
+    ],
+    "technical_checks": [
+      {
+        "id": "git_prereq",
+        "must_include_any": [
+          "GitHub",
+          "push",
+          "仓库",
+          "remote"
+        ]
+      }
+    ],
+    "config_checks": [],
+    "document_standard": {
+      "min_sections": 3,
+      "min_chars": 200,
+      "required_sections_any": [
+        "前提",
+        "仓库",
+        "连接"
+      ]
+    },
+    "artifact_expectation": {
+      "required": false
+    },
+    "judge_rubric": {
+      "technical_correctness": "是否符合 Render 部署、环境变量、端口、服务类型、数据库/worker 等真实技术规则。",
+      "step_order": "是否按前提检查、配置、部署、验证/排错的合理顺序回答。",
+      "config_executability": "涉及 render.yaml 或命令时，配置字段是否可执行且不是伪配置。",
+      "problem_resolution": "是否直接解决用户场景，而不是泛泛解释 Render。",
+      "hidden_critical_errors": "是否存在严重误导，如硬编码密钥、忽略 PORT、错误服务类型、错误数据库连接方式。",
+      "document_standard": "如果回答是方案/文档，结构是否清楚，章节是否完整，可作为交付说明。"
+    },
+    "quality_thresholds": {
+      "local_score": 0.65,
+      "judge_score": 0.7,
+      "components": {
+        "forbidden": 1.0,
+        "hallucination_free": 1.0
+      }
+    },
+    "notes": "扩展 QA schema：同时评估技术正确性、步骤顺序、配置可执行性、问题解决度、隐藏严重错误和文档标准。"
+  },
+  {
+    "id": "QA-06",
+    "query": "帮我生成一个 render.yaml 文件，我的应用是 Next.js + PostgreSQL + Redis + 后台 worker",
+    "expected_skill": "render-deploy",
+    "difficulty": "hard",
+    "description": "复杂多服务 Blueprint",
+    "category": "deployment",
+    "turns": [
+      "帮我生成一个 render.yaml 文件，我的应用是 Next.js + PostgreSQL + Redis + 后台 worker"
+    ],
+    "expected_activation": true,
+    "must_include": [
+      "Next",
+      "PostgreSQL",
+      "Redis",
+      "worker",
+      "render.yaml",
+      "BluePrint"
+    ],
+    "should_include": [],
+    "forbidden": [
+      "伪造 API key",
+      "硬编码密钥",
+      "提交密钥",
+      "固定 3000 端口即可",
+      "忽略 PORT"
+    ],
+    "allowed_references": [],
+    "ordered_steps": [
+      {
+        "any": [
+          "render.yaml",
+          "Blueprint"
+        ]
+      },
+      {
+        "any": [
+          "web",
+          "Next"
+        ]
+      },
+      {
+        "any": [
+          "PostgreSQL"
+        ]
+      },
+      {
+        "any": [
+          "Redis"
+        ]
+      },
+      {
+        "any": [
+          "worker"
+        ]
+      },
+      {
+        "any": [
+          "环境变量",
+          "验证"
+        ]
+      }
+    ],
+    "technical_checks": [
+      {
+        "id": "blueprint",
+        "must_include_any": [
+          "Blueprint",
+          "render.yaml",
+          "services"
+        ]
+      },
+      {
+        "id": "multi_service",
+        "must_include_any": [
+          "多服务",
+          "services",
+          "web service",
+          "static site",
+          "worker"
+        ]
+      },
+      {
+        "id": "secret",
+        "must_include_any": [
+          "secret",
+          "sync: false",
+          "不提交",
+          "Dashboard"
+        ]
+      }
+    ],
+    "config_checks": [
+      {
+        "id": "render_yaml_shape",
+        "type": "render_yaml",
+        "required": false,
+        "required_service_fields": [
+          "type",
+          "name"
+        ],
+        "must_include": [
+          "services"
+        ]
+      }
+    ],
+    "document_standard": {
+      "min_sections": 3,
+      "min_chars": 200,
+      "required_sections_any": [
+        "服务",
+        "数据库",
+        "Redis",
+        "worker",
+        "验证"
+      ]
+    },
+    "artifact_expectation": {
+      "required": false
+    },
+    "judge_rubric": {
+      "technical_correctness": "是否符合 Render 部署、环境变量、端口、服务类型、数据库/worker 等真实技术规则。",
+      "step_order": "是否按前提检查、配置、部署、验证/排错的合理顺序回答。",
+      "config_executability": "涉及 render.yaml 或命令时，配置字段是否可执行且不是伪配置。",
+      "problem_resolution": "是否直接解决用户场景，而不是泛泛解释 Render。",
+      "hidden_critical_errors": "是否存在严重误导，如硬编码密钥、忽略 PORT、错误服务类型、错误数据库连接方式。",
+      "document_standard": "如果回答是方案/文档，结构是否清楚，章节是否完整，可作为交付说明。"
+    },
+    "quality_thresholds": {
+      "local_score": 0.65,
+      "judge_score": 0.7,
+      "components": {
+        "forbidden": 1.0,
+        "hallucination_free": 1.0
+      }
+    },
+    "notes": "扩展 QA schema：同时评估技术正确性、步骤顺序、配置可执行性、问题解决度、隐藏严重错误和文档标准。"
+  },
+  {
+    "id": "QA-07",
+    "query": "部署完成后怎么看我的应用是否正常运行",
+    "expected_skill": "render-deploy",
+    "difficulty": "simple",
+    "description": "部署后验证",
+    "category": "deployment",
+    "turns": [
+      "部署完成后怎么看我的应用是否正常运行"
+    ],
+    "expected_activation": true,
+    "must_include": [
+      "live",
+      "日志",
+      "health",
+      "端口",
+      "部署"
+    ],
+    "should_include": [],
+    "forbidden": [
+      "伪造 API key",
+      "硬编码密钥",
+      "提交密钥",
+      "固定 3000 端口即可",
+      "忽略 PORT"
+    ],
+    "allowed_references": [],
+    "ordered_steps": [
+      {
+        "any": [
+          "状态",
+          "live"
+        ]
+      },
+      {
+        "any": [
+          "日志",
+          "logs"
+        ]
+      },
+      {
+        "any": [
+          "health",
+          "健康"
+        ]
+      },
+      {
+        "any": [
+          "端口",
+          "PORT"
+        ]
+      }
+    ],
+    "technical_checks": [
+      {
+        "id": "verify_live",
+        "must_include_any": [
+          "日志",
+          "health",
+          "live",
+          "状态"
+        ]
+      }
+    ],
+    "config_checks": [],
+    "document_standard": {
+      "min_sections": 3,
+      "min_chars": 200,
+      "required_sections_any": [
+        "状态",
+        "日志",
+        "健康检查"
+      ]
+    },
+    "artifact_expectation": {
+      "required": false
+    },
+    "judge_rubric": {
+      "technical_correctness": "是否符合 Render 部署、环境变量、端口、服务类型、数据库/worker 等真实技术规则。",
+      "step_order": "是否按前提检查、配置、部署、验证/排错的合理顺序回答。",
+      "config_executability": "涉及 render.yaml 或命令时，配置字段是否可执行且不是伪配置。",
+      "problem_resolution": "是否直接解决用户场景，而不是泛泛解释 Render。",
+      "hidden_critical_errors": "是否存在严重误导，如硬编码密钥、忽略 PORT、错误服务类型、错误数据库连接方式。",
+      "document_standard": "如果回答是方案/文档，结构是否清楚，章节是否完整，可作为交付说明。"
+    },
+    "quality_thresholds": {
+      "local_score": 0.65,
+      "judge_score": 0.7,
+      "components": {
+        "forbidden": 1.0,
+        "hallucination_free": 1.0
+      }
+    },
+    "notes": "扩展 QA schema：同时评估技术正确性、步骤顺序、配置可执行性、问题解决度、隐藏严重错误和文档标准。"
+  },
+  {
+    "id": "QA-08",
+    "query": "我的 Render 部署失败了，日志显示端口绑定错误",
+    "expected_skill": "render-deploy",
+    "difficulty": "medium",
+    "description": "端口绑定排查",
+    "category": "deployment",
+    "turns": [
+      "我的 Render 部署失败了，日志显示端口绑定错误"
+    ],
+    "expected_activation": true,
+    "must_include": [
+      "端口",
+      "PORT",
+      "0.0.0.0",
+      "startCommand",
+      "启动命令"
+    ],
+    "should_include": [],
+    "forbidden": [
+      "伪造 API key",
+      "硬编码密钥",
+      "提交密钥",
+      "固定 3000 端口即可",
+      "忽略 PORT"
+    ],
+    "allowed_references": [],
+    "ordered_steps": [
+      {
+        "any": [
+          "日志",
+          "错误"
+        ]
+      },
+      {
+        "any": [
+          "PORT",
+          "端口"
+        ]
+      },
+      {
+        "any": [
+          "0.0.0.0"
+        ]
+      },
+      {
+        "any": [
+          "startCommand",
+          "启动命令"
+        ]
+      },
+      {
+        "any": [
+          "重新部署",
+          "验证"
+        ]
+      }
+    ],
+    "technical_checks": [
+      {
+        "id": "bind_port",
+        "must_include": [
+          "PORT"
+        ],
+        "must_include_any": [
+          "0.0.0.0",
+          "process.env.PORT"
+        ]
+      },
+      {
+        "id": "start_command",
+        "must_include_any": [
+          "startCommand",
+          "启动命令"
+        ]
+      }
+    ],
+    "config_checks": [],
+    "document_standard": {
+      "min_sections": 3,
+      "min_chars": 200,
+      "required_sections_any": [
+        "原因",
+        "修复",
+        "验证"
+      ]
+    },
+    "artifact_expectation": {
+      "required": false
+    },
+    "judge_rubric": {
+      "technical_correctness": "是否符合 Render 部署、环境变量、端口、服务类型、数据库/worker 等真实技术规则。",
+      "step_order": "是否按前提检查、配置、部署、验证/排错的合理顺序回答。",
+      "config_executability": "涉及 render.yaml 或命令时，配置字段是否可执行且不是伪配置。",
+      "problem_resolution": "是否直接解决用户场景，而不是泛泛解释 Render。",
+      "hidden_critical_errors": "是否存在严重误导，如硬编码密钥、忽略 PORT、错误服务类型、错误数据库连接方式。",
+      "document_standard": "如果回答是方案/文档，结构是否清楚，章节是否完整，可作为交付说明。"
+    },
+    "quality_thresholds": {
+      "local_score": 0.65,
+      "judge_score": 0.7,
+      "components": {
+        "forbidden": 1.0,
+        "hallucination_free": 1.0
+      }
+    },
+    "notes": "扩展 QA schema：同时评估技术正确性、步骤顺序、配置可执行性、问题解决度、隐藏严重错误和文档标准。"
+  },
+  {
+    "id": "QA-09",
+    "query": "帮我在 Render 上创建一个定时任务，每天早上 6 点运行数据清理脚本",
+    "expected_skill": "render-deploy",
+    "difficulty": "medium",
+    "description": "Cron job",
+    "category": "deployment",
+    "turns": [
+      "帮我在 Render 上创建一个定时任务，每天早上 6 点运行数据清理脚本"
+    ],
+    "expected_activation": true,
+    "must_include": [
+      "cron",
+      "定时",
+      "schedule",
+      "6",
+      "脚本"
+    ],
+    "should_include": [],
+    "forbidden": [
+      "伪造 API key",
+      "硬编码密钥",
+      "提交密钥",
+      "固定 3000 端口即可",
+      "忽略 PORT"
+    ],
+    "allowed_references": [],
+    "ordered_steps": [
+      {
+        "any": [
+          "cron",
+          "定时"
+        ]
+      },
+      {
+        "any": [
+          "schedule",
+          "6"
+        ]
+      },
+      {
+        "any": [
+          "脚本",
+          "command"
+        ]
+      },
+      {
+        "any": [
+          "验证",
+          "日志"
+        ]
+      }
+    ],
+    "technical_checks": [
+      {
+        "id": "cron_schedule",
+        "must_include_any": [
+          "cron",
+          "schedule"
+        ],
+        "must_match_regex": [
+          "6|06:00|0 6"
+        ]
+      }
+    ],
+    "config_checks": [],
+    "document_standard": {
+      "min_sections": 3,
+      "min_chars": 200,
+      "required_sections_any": [
+        "计划",
+        "命令",
+        "验证"
+      ]
+    },
+    "artifact_expectation": {
+      "required": false
+    },
+    "judge_rubric": {
+      "technical_correctness": "是否符合 Render 部署、环境变量、端口、服务类型、数据库/worker 等真实技术规则。",
+      "step_order": "是否按前提检查、配置、部署、验证/排错的合理顺序回答。",
+      "config_executability": "涉及 render.yaml 或命令时，配置字段是否可执行且不是伪配置。",
+      "problem_resolution": "是否直接解决用户场景，而不是泛泛解释 Render。",
+      "hidden_critical_errors": "是否存在严重误导，如硬编码密钥、忽略 PORT、错误服务类型、错误数据库连接方式。",
+      "document_standard": "如果回答是方案/文档，结构是否清楚，章节是否完整，可作为交付说明。"
+    },
+    "quality_thresholds": {
+      "local_score": 0.65,
+      "judge_score": 0.7,
+      "components": {
+        "forbidden": 1.0,
+        "hallucination_free": 1.0
+      }
+    },
+    "notes": "扩展 QA schema：同时评估技术正确性、步骤顺序、配置可执行性、问题解决度、隐藏严重错误和文档标准。"
+  },
+  {
+    "id": "QA-10",
+    "query": "部署一个纯静态网站到 Render",
+    "expected_skill": "render-deploy",
+    "difficulty": "simple",
+    "description": "静态网站",
+    "category": "deployment",
+    "turns": [
+      "部署一个纯静态网站到 Render"
+    ],
+    "expected_activation": true,
+    "must_include": [
+      "static",
+      "静态",
+      "HTML",
+      "CDN",
+      "publishPath"
+    ],
+    "should_include": [],
+    "forbidden": [
+      "伪造 API key",
+      "硬编码密钥",
+      "提交密钥",
+      "固定 3000 端口即可",
+      "忽略 PORT"
+    ],
+    "allowed_references": [],
+    "ordered_steps": [
+      {
+        "any": [
+          "static",
+          "静态"
+        ]
+      },
+      {
+        "any": [
+          "publishPath",
+          "发布目录"
+        ]
+      },
+      {
+        "any": [
+          "buildCommand",
+          "构建"
+        ]
+      },
+      {
+        "any": [
+          "部署",
+          "验证"
+        ]
+      }
+    ],
+    "technical_checks": [
+      {
+        "id": "static_publish",
+        "must_include_any": [
+          "publishPath",
+          "静态",
+          "static"
+        ]
+      }
+    ],
+    "config_checks": [],
+    "document_standard": {
+      "min_sections": 3,
+      "min_chars": 200,
+      "required_sections_any": [
+        "构建",
+        "发布目录",
+        "验证"
+      ]
+    },
+    "artifact_expectation": {
+      "required": false
+    },
+    "judge_rubric": {
+      "technical_correctness": "是否符合 Render 部署、环境变量、端口、服务类型、数据库/worker 等真实技术规则。",
+      "step_order": "是否按前提检查、配置、部署、验证/排错的合理顺序回答。",
+      "config_executability": "涉及 render.yaml 或命令时，配置字段是否可执行且不是伪配置。",
+      "problem_resolution": "是否直接解决用户场景，而不是泛泛解释 Render。",
+      "hidden_critical_errors": "是否存在严重误导，如硬编码密钥、忽略 PORT、错误服务类型、错误数据库连接方式。",
+      "document_standard": "如果回答是方案/文档，结构是否清楚，章节是否完整，可作为交付说明。"
+    },
+    "quality_thresholds": {
+      "local_score": 0.65,
+      "judge_score": 0.7,
+      "components": {
+        "forbidden": 1.0,
+        "hallucination_free": 1.0
+      }
+    },
+    "notes": "扩展 QA schema：同时评估技术正确性、步骤顺序、配置可执行性、问题解决度、隐藏严重错误和文档标准。"
+  },
+  {
+    "id": "QA-11",
+    "query": "我的 Render API key 在哪里获取",
+    "expected_skill": "render-deploy",
+    "difficulty": "simple",
+    "description": "API key 获取",
+    "category": "deployment",
+    "turns": [
+      "我的 Render API key 在哪里获取"
+    ],
+    "expected_activation": true,
+    "must_include": [
+      "API",
+      "key",
+      "Dashboard",
+      "settings",
+      "rnd_"
+    ],
+    "should_include": [],
+    "forbidden": [
+      "伪造 API key",
+      "硬编码密钥",
+      "提交密钥",
+      "固定 3000 端口即可",
+      "忽略 PORT"
+    ],
+    "allowed_references": [],
+    "ordered_steps": [
+      {
+        "any": [
+          "Dashboard",
+          "控制台"
+        ]
+      },
+      {
+        "any": [
+          "Account",
+          "settings",
+          "设置"
+        ]
+      },
+      {
+        "any": [
+          "API",
+          "key"
+        ]
+      },
+      {
+        "any": [
+          "secret",
+          "不要泄露",
+          "保密"
+        ]
+      }
+    ],
+    "technical_checks": [
+      {
+        "id": "api_key_secret",
+        "must_include_any": [
+          "Dashboard",
+          "settings",
+          "API key"
+        ],
+        "must_not_include": [
+          "明文写入代码",
+          "提交到 Git"
+        ]
+      }
+    ],
+    "config_checks": [],
+    "document_standard": {
+      "min_sections": 3,
+      "min_chars": 200,
+      "required_sections_any": [
+        "位置",
+        "安全"
+      ]
+    },
+    "artifact_expectation": {
+      "required": false
+    },
+    "judge_rubric": {
+      "technical_correctness": "是否符合 Render 部署、环境变量、端口、服务类型、数据库/worker 等真实技术规则。",
+      "step_order": "是否按前提检查、配置、部署、验证/排错的合理顺序回答。",
+      "config_executability": "涉及 render.yaml 或命令时，配置字段是否可执行且不是伪配置。",
+      "problem_resolution": "是否直接解决用户场景，而不是泛泛解释 Render。",
+      "hidden_critical_errors": "是否存在严重误导，如硬编码密钥、忽略 PORT、错误服务类型、错误数据库连接方式。",
+      "document_standard": "如果回答是方案/文档，结构是否清楚，章节是否完整，可作为交付说明。"
+    },
+    "quality_thresholds": {
+      "local_score": 0.65,
+      "judge_score": 0.7,
+      "components": {
+        "forbidden": 1.0,
+        "hallucination_free": 1.0
+      }
+    },
+    "notes": "扩展 QA schema：同时评估技术正确性、步骤顺序、配置可执行性、问题解决度、隐藏严重错误和文档标准。"
+  },
+  {
+    "id": "QA-12",
+    "query": "帮我验证一下我刚写的 render.yaml 有没有语法错误",
+    "expected_skill": "render-deploy",
+    "difficulty": "simple",
+    "description": "render.yaml 验证",
+    "category": "deployment",
+    "turns": [
+      "帮我验证一下我刚写的 render.yaml 有没有语法错误"
+    ],
+    "expected_activation": true,
+    "must_include": [
+      "blueprints",
+      "validate",
+      "YAML",
+      "验证",
+      "语法"
+    ],
+    "should_include": [],
+    "forbidden": [
+      "伪造 API key",
+      "硬编码密钥",
+      "提交密钥",
+      "固定 3000 端口即可",
+      "忽略 PORT"
+    ],
+    "allowed_references": [],
+    "ordered_steps": [
+      {
+        "any": [
+          "YAML",
+          "语法"
+        ]
+      },
+      {
+        "any": [
+          "Blueprint",
+          "blueprints"
+        ]
+      },
+      {
+        "any": [
+          "validate",
+          "验证"
+        ]
+      },
+      {
+        "any": [
+          "修复",
+          "错误"
+        ]
+      }
+    ],
+    "technical_checks": [
+      {
+        "id": "yaml_validate",
+        "must_include_any": [
+          "validate",
+          "YAML",
+          "语法",
+          "Blueprint"
+        ]
+      }
+    ],
+    "config_checks": [
+      {
+        "id": "render_yaml_shape",
+        "type": "render_yaml",
+        "required": false,
+        "required_service_fields": [
+          "type",
+          "name"
+        ],
+        "must_include": [
+          "services"
+        ]
+      }
+    ],
+    "document_standard": {
+      "min_sections": 3,
+      "min_chars": 200,
+      "required_sections_any": [
+        "检查",
+        "验证",
+        "修复"
+      ]
+    },
+    "artifact_expectation": {
+      "required": false
+    },
+    "judge_rubric": {
+      "technical_correctness": "是否符合 Render 部署、环境变量、端口、服务类型、数据库/worker 等真实技术规则。",
+      "step_order": "是否按前提检查、配置、部署、验证/排错的合理顺序回答。",
+      "config_executability": "涉及 render.yaml 或命令时，配置字段是否可执行且不是伪配置。",
+      "problem_resolution": "是否直接解决用户场景，而不是泛泛解释 Render。",
+      "hidden_critical_errors": "是否存在严重误导，如硬编码密钥、忽略 PORT、错误服务类型、错误数据库连接方式。",
+      "document_standard": "如果回答是方案/文档，结构是否清楚，章节是否完整，可作为交付说明。"
+    },
+    "quality_thresholds": {
+      "local_score": 0.65,
+      "judge_score": 0.7,
+      "components": {
+        "forbidden": 1.0,
+        "hallucination_free": 1.0
+      }
+    },
+    "notes": "扩展 QA schema：同时评估技术正确性、步骤顺序、配置可执行性、问题解决度、隐藏严重错误和文档标准。"
+  },
+  {
+    "id": "QA-13",
+    "query": "今天天气怎么样",
+    "expected_skill": null,
+    "difficulty": "simple",
+    "description": "阴性对照",
+    "category": "negative",
+    "turns": [
+      "今天天气怎么样"
+    ],
+    "expected_activation": false,
+    "must_include": [],
+    "should_include": [],
+    "forbidden": [
+      "伪造 API key",
+      "硬编码密钥",
+      "提交密钥",
+      "固定 3000 端口即可",
+      "忽略 PORT"
+    ],
+    "allowed_references": [],
+    "ordered_steps": [],
+    "technical_checks": [],
+    "config_checks": [],
+    "document_standard": {
+      "min_sections": 3,
+      "min_chars": 200,
+      "required_sections_any": []
+    },
+    "artifact_expectation": {
+      "required": false
+    },
+    "judge_rubric": {
+      "technical_correctness": "是否符合 Render 部署、环境变量、端口、服务类型、数据库/worker 等真实技术规则。",
+      "step_order": "是否按前提检查、配置、部署、验证/排错的合理顺序回答。",
+      "config_executability": "涉及 render.yaml 或命令时，配置字段是否可执行且不是伪配置。",
+      "problem_resolution": "是否直接解决用户场景，而不是泛泛解释 Render。",
+      "hidden_critical_errors": "是否存在严重误导，如硬编码密钥、忽略 PORT、错误服务类型、错误数据库连接方式。",
+      "document_standard": "如果回答是方案/文档，结构是否清楚，章节是否完整，可作为交付说明。"
+    },
+    "quality_thresholds": {
+      "local_score": 0.65,
+      "judge_score": 0.7,
+      "components": {
+        "forbidden": 1.0,
+        "hallucination_free": 1.0
+      }
+    },
+    "notes": "扩展 QA schema：同时评估技术正确性、步骤顺序、配置可执行性、问题解决度、隐藏严重错误和文档标准。"
+  },
+  {
+    "id": "QA-14",
+    "query": "我要部署一个 Ruby on Rails 单体应用，需要 PostgreSQL 和 Sidekiq worker",
+    "expected_skill": "render-deploy",
+    "difficulty": "hard",
+    "description": "Rails 复杂部署",
+    "category": "deployment",
+    "turns": [
+      "我要部署一个 Ruby on Rails 单体应用，需要 PostgreSQL 和 Sidekiq worker"
+    ],
+    "expected_activation": true,
+    "must_include": [
+      "Ruby",
+      "Rails",
+      "PostgreSQL",
+      "Sidekiq",
+      "worker",
+      "web"
+    ],
+    "should_include": [],
+    "forbidden": [
+      "伪造 API key",
+      "硬编码密钥",
+      "提交密钥",
+      "固定 3000 端口即可",
+      "忽略 PORT"
+    ],
+    "allowed_references": [],
+    "ordered_steps": [
+      {
+        "any": [
+          "Rails",
+          "Ruby"
+        ]
+      },
+      {
+        "any": [
+          "PostgreSQL"
+        ]
+      },
+      {
+        "any": [
+          "Sidekiq",
+          "worker"
+        ]
+      },
+      {
+        "any": [
+          "DATABASE_URL",
+          "REDIS_URL",
+          "环境变量"
+        ]
+      },
+      {
+        "any": [
+          "迁移",
+          "migrate"
+        ]
+      },
+      {
+        "any": [
+          "验证"
+        ]
+      }
+    ],
+    "technical_checks": [
+      {
+        "id": "rails_sidekiq",
+        "must_include_any": [
+          "Sidekiq",
+          "worker"
+        ],
+        "must_include": [
+          "PostgreSQL"
+        ]
+      },
+      {
+        "id": "env_var",
+        "must_include_any": [
+          "环境变量",
+          "envVars",
+          "DATABASE_URL"
+        ]
+      }
+    ],
+    "config_checks": [],
+    "document_standard": {
+      "min_sections": 3,
+      "min_chars": 200,
+      "required_sections_any": [
+        "web",
+        "worker",
+        "数据库",
+        "验证"
+      ]
+    },
+    "artifact_expectation": {
+      "required": false
+    },
+    "judge_rubric": {
+      "technical_correctness": "是否符合 Render 部署、环境变量、端口、服务类型、数据库/worker 等真实技术规则。",
+      "step_order": "是否按前提检查、配置、部署、验证/排错的合理顺序回答。",
+      "config_executability": "涉及 render.yaml 或命令时，配置字段是否可执行且不是伪配置。",
+      "problem_resolution": "是否直接解决用户场景，而不是泛泛解释 Render。",
+      "hidden_critical_errors": "是否存在严重误导，如硬编码密钥、忽略 PORT、错误服务类型、错误数据库连接方式。",
+      "document_standard": "如果回答是方案/文档，结构是否清楚，章节是否完整，可作为交付说明。"
+    },
+    "quality_thresholds": {
+      "local_score": 0.65,
+      "judge_score": 0.7,
+      "components": {
+        "forbidden": 1.0,
+        "hallucination_free": 1.0
+      }
+    },
+    "notes": "扩展 QA schema：同时评估技术正确性、步骤顺序、配置可执行性、问题解决度、隐藏严重错误和文档标准。"
+  },
+  {
+    "id": "QA-15",
+    "query": "render.yaml 写好了，已经 push 到 GitHub，下一步怎么做",
+    "expected_skill": "render-deploy",
+    "difficulty": "medium",
+    "description": "Blueprint 最后步骤",
+    "category": "deployment",
+    "turns": [
+      "render.yaml 写好了，已经 push 到 GitHub，下一步怎么做"
+    ],
+    "expected_activation": true,
+    "must_include": [
+      "Dashboard",
+      "deeplink",
+      "push",
+      "Apply",
+      "OAuth"
+    ],
+    "should_include": [],
+    "forbidden": [
+      "伪造 API key",
+      "硬编码密钥",
+      "提交密钥",
+      "固定 3000 端口即可",
+      "忽略 PORT"
+    ],
+    "allowed_references": [],
+    "ordered_steps": [
+      {
+        "any": [
+          "push",
+          "GitHub"
+        ]
+      },
+      {
+        "any": [
+          "Dashboard",
+          "Blueprint"
+        ]
+      },
+      {
+        "any": [
+          "Apply",
+          "创建"
+        ]
+      },
+      {
+        "any": [
+          "OAuth",
+          "授权"
+        ]
+      },
+      {
+        "any": [
+          "部署",
+          "日志"
+        ]
+      }
+    ],
+    "technical_checks": [
+      {
+        "id": "blueprint_apply",
+        "must_include_any": [
+          "Apply",
+          "Blueprint",
+          "Dashboard"
+        ]
+      }
+    ],
+    "config_checks": [],
+    "document_standard": {
+      "min_sections": 3,
+      "min_chars": 200,
+      "required_sections_any": [
+        "进入控制台",
+        "应用 Blueprint",
+        "验证"
+      ]
+    },
+    "artifact_expectation": {
+      "required": false
+    },
+    "judge_rubric": {
+      "technical_correctness": "是否符合 Render 部署、环境变量、端口、服务类型、数据库/worker 等真实技术规则。",
+      "step_order": "是否按前提检查、配置、部署、验证/排错的合理顺序回答。",
+      "config_executability": "涉及 render.yaml 或命令时，配置字段是否可执行且不是伪配置。",
+      "problem_resolution": "是否直接解决用户场景，而不是泛泛解释 Render。",
+      "hidden_critical_errors": "是否存在严重误导，如硬编码密钥、忽略 PORT、错误服务类型、错误数据库连接方式。",
+      "document_standard": "如果回答是方案/文档，结构是否清楚，章节是否完整，可作为交付说明。"
+    },
+    "quality_thresholds": {
+      "local_score": 0.65,
+      "judge_score": 0.7,
+      "components": {
+        "forbidden": 1.0,
+        "hallucination_free": 1.0
+      }
+    },
+    "notes": "扩展 QA schema：同时评估技术正确性、步骤顺序、配置可执行性、问题解决度、隐藏严重错误和文档标准。"
+  },
+  {
+    "id": "QA-16",
+    "query": "我不想用 render.yaml，能直接在 Render 上创建一个服务吗",
+    "expected_skill": "render-deploy",
+    "difficulty": "medium",
+    "description": "Direct Creation",
+    "category": "deployment",
+    "turns": [
+      "我不想用 render.yaml，能直接在 Render 上创建一个服务吗"
+    ],
+    "expected_activation": true,
+    "must_include": [
+      "MCP",
+      "Direct",
+      "list_services",
+      "Git",
+      "remote"
+    ],
+    "should_include": [],
+    "forbidden": [
+      "伪造 API key",
+      "硬编码密钥",
+      "提交密钥",
+      "固定 3000 端口即可",
+      "忽略 PORT"
+    ],
+    "allowed_references": [],
+    "ordered_steps": [
+      {
+        "any": [
+          "直接创建",
+          "Direct"
+        ]
+      },
+      {
+        "any": [
+          "Web Service",
+          "服务"
+        ]
+      },
+      {
+        "any": [
+          "Git",
+          "仓库"
+        ]
+      },
+      {
+        "any": [
+          "环境变量"
+        ]
+      },
+      {
+        "any": [
+          "部署",
+          "验证"
+        ]
+      }
+    ],
+    "technical_checks": [
+      {
+        "id": "direct_creation",
+        "must_include_any": [
+          "Direct",
+          "手动创建",
+          "Web Service",
+          "Dashboard"
+        ]
+      }
+    ],
+    "config_checks": [],
+    "document_standard": {
+      "min_sections": 3,
+      "min_chars": 200,
+      "required_sections_any": [
+        "创建服务",
+        "配置",
+        "验证"
+      ]
+    },
+    "artifact_expectation": {
+      "required": false
+    },
+    "judge_rubric": {
+      "technical_correctness": "是否符合 Render 部署、环境变量、端口、服务类型、数据库/worker 等真实技术规则。",
+      "step_order": "是否按前提检查、配置、部署、验证/排错的合理顺序回答。",
+      "config_executability": "涉及 render.yaml 或命令时，配置字段是否可执行且不是伪配置。",
+      "problem_resolution": "是否直接解决用户场景，而不是泛泛解释 Render。",
+      "hidden_critical_errors": "是否存在严重误导，如硬编码密钥、忽略 PORT、错误服务类型、错误数据库连接方式。",
+      "document_standard": "如果回答是方案/文档，结构是否清楚，章节是否完整，可作为交付说明。"
+    },
+    "quality_thresholds": {
+      "local_score": 0.65,
+      "judge_score": 0.7,
+      "components": {
+        "forbidden": 1.0,
+        "hallucination_free": 1.0
+      }
+    },
+    "notes": "扩展 QA schema：同时评估技术正确性、步骤顺序、配置可执行性、问题解决度、隐藏严重错误和文档标准。"
+  },
+  {
+    "id": "QA-17",
+    "query": "我的项目里有敏感的环境变量，比如 JWT_SECRET 和 API_KEY，render.yaml 里怎么处理",
+    "expected_skill": "render-deploy",
+    "difficulty": "simple",
+    "description": "敏感环境变量",
+    "category": "deployment",
+    "turns": [
+      "我的项目里有敏感的环境变量，比如 JWT_SECRET 和 API_KEY，render.yaml 里怎么处理"
+    ],
+    "expected_activation": true,
+    "must_include": [
+      "sync",
+      "false",
+      "secret",
+      "Dashboard",
+      "envVar",
+      "不写入"
+    ],
+    "should_include": [],
+    "forbidden": [
+      "伪造 API key",
+      "硬编码密钥",
+      "提交密钥",
+      "固定 3000 端口即可",
+      "忽略 PORT"
+    ],
+    "allowed_references": [],
+    "ordered_steps": [
+      {
+        "any": [
+          "envVar",
+          "环境变量"
+        ]
+      },
+      {
+        "any": [
+          "sync",
+          "false"
+        ]
+      },
+      {
+        "any": [
+          "Dashboard",
+          "控制台"
+        ]
+      },
+      {
+        "any": [
+          "secret",
+          "不写入",
+          "不要提交"
+        ]
+      }
+    ],
+    "technical_checks": [
+      {
+        "id": "secret_sync_false",
+        "must_include_any": [
+          "sync: false",
+          "Dashboard",
+          "secret",
+          "不写入"
+        ]
+      }
+    ],
+    "config_checks": [],
+    "document_standard": {
+      "min_sections": 3,
+      "min_chars": 200,
+      "required_sections_any": [
+        "敏感变量",
+        "控制台",
+        "安全"
+      ]
+    },
+    "artifact_expectation": {
+      "required": false
+    },
+    "judge_rubric": {
+      "technical_correctness": "是否符合 Render 部署、环境变量、端口、服务类型、数据库/worker 等真实技术规则。",
+      "step_order": "是否按前提检查、配置、部署、验证/排错的合理顺序回答。",
+      "config_executability": "涉及 render.yaml 或命令时，配置字段是否可执行且不是伪配置。",
+      "problem_resolution": "是否直接解决用户场景，而不是泛泛解释 Render。",
+      "hidden_critical_errors": "是否存在严重误导，如硬编码密钥、忽略 PORT、错误服务类型、错误数据库连接方式。",
+      "document_standard": "如果回答是方案/文档，结构是否清楚，章节是否完整，可作为交付说明。"
+    },
+    "quality_thresholds": {
+      "local_score": 0.65,
+      "judge_score": 0.7,
+      "components": {
+        "forbidden": 1.0,
+        "hallucination_free": 1.0
+      }
+    },
+    "notes": "扩展 QA schema：同时评估技术正确性、步骤顺序、配置可执行性、问题解决度、隐藏严重错误和文档标准。"
+  },
+  {
+    "id": "QA-18",
+    "query": "部署一个 Go API 服务 + React 前端，都用 free plan，不需要数据库",
+    "expected_skill": "render-deploy",
+    "difficulty": "medium",
+    "description": "前后端双服务",
+    "category": "deployment",
+    "turns": [
+      "部署一个 Go API 服务 + React 前端，都用 free plan，不需要数据库"
+    ],
+    "expected_activation": true,
+    "must_include": [
+      "Go",
+      "React",
+      "free",
+      "web",
+      "static",
+      "前端"
+    ],
+    "should_include": [],
+    "forbidden": [
+      "伪造 API key",
+      "硬编码密钥",
+      "提交密钥",
+      "固定 3000 端口即可",
+      "忽略 PORT"
+    ],
+    "allowed_references": [],
+    "ordered_steps": [
+      {
+        "any": [
+          "Go",
+          "API"
+        ]
+      },
+      {
+        "any": [
+          "React",
+          "前端"
+        ]
+      },
+      {
+        "any": [
+          "free",
+          "免费"
+        ]
+      },
+      {
+        "any": [
+          "web",
+          "static"
+        ]
+      },
+      {
+        "any": [
+          "验证"
+        ]
+      }
+    ],
+    "technical_checks": [
+      {
+        "id": "go_react_free",
+        "must_include_any": [
+          "Go",
+          "React",
+          "free",
+          "static"
+        ]
+      }
+    ],
+    "config_checks": [],
+    "document_standard": {
+      "min_sections": 3,
+      "min_chars": 200,
+      "required_sections_any": [
+        "后端",
+        "前端",
+        "限制",
+        "验证"
+      ]
+    },
+    "artifact_expectation": {
+      "required": false
+    },
+    "judge_rubric": {
+      "technical_correctness": "是否符合 Render 部署、环境变量、端口、服务类型、数据库/worker 等真实技术规则。",
+      "step_order": "是否按前提检查、配置、部署、验证/排错的合理顺序回答。",
+      "config_executability": "涉及 render.yaml 或命令时，配置字段是否可执行且不是伪配置。",
+      "problem_resolution": "是否直接解决用户场景，而不是泛泛解释 Render。",
+      "hidden_critical_errors": "是否存在严重误导，如硬编码密钥、忽略 PORT、错误服务类型、错误数据库连接方式。",
+      "document_standard": "如果回答是方案/文档，结构是否清楚，章节是否完整，可作为交付说明。"
+    },
+    "quality_thresholds": {
+      "local_score": 0.65,
+      "judge_score": 0.7,
+      "components": {
+        "forbidden": 1.0,
+        "hallucination_free": 1.0
+      }
+    },
+    "notes": "扩展 QA schema：同时评估技术正确性、步骤顺序、配置可执行性、问题解决度、隐藏严重错误和文档标准。"
+  },
+  {
+    "id": "QA-19",
+    "query": "部署失败报 network timeout，怎么办",
+    "expected_skill": "render-deploy",
+    "difficulty": "simple",
+    "description": "网络超时",
+    "category": "deployment",
+    "turns": [
+      "部署失败报 network timeout，怎么办"
+    ],
+    "expected_activation": true,
+    "must_include": [
+      "network",
+      "timeout",
+      "escalated",
+      "permission",
+      "重试"
+    ],
+    "should_include": [],
+    "forbidden": [
+      "伪造 API key",
+      "硬编码密钥",
+      "提交密钥",
+      "固定 3000 端口即可",
+      "忽略 PORT"
+    ],
+    "allowed_references": [],
+    "ordered_steps": [
+      {
+        "any": [
+          "network",
+          "timeout"
+        ]
+      },
+      {
+        "any": [
+          "重试",
+          "retry"
+        ]
+      },
+      {
+        "any": [
+          "网络",
+          "权限"
+        ]
+      },
+      {
+        "any": [
+          "日志",
+          "escalated"
+        ]
+      }
+    ],
+    "technical_checks": [
+      {
+        "id": "network_timeout",
+        "must_include_any": [
+          "timeout",
+          "重试",
+          "网络",
+          "日志"
+        ]
+      }
+    ],
+    "config_checks": [],
+    "document_standard": {
+      "min_sections": 3,
+      "min_chars": 200,
+      "required_sections_any": [
+        "原因",
+        "排查",
+        "处理"
+      ]
+    },
+    "artifact_expectation": {
+      "required": false
+    },
+    "judge_rubric": {
+      "technical_correctness": "是否符合 Render 部署、环境变量、端口、服务类型、数据库/worker 等真实技术规则。",
+      "step_order": "是否按前提检查、配置、部署、验证/排错的合理顺序回答。",
+      "config_executability": "涉及 render.yaml 或命令时，配置字段是否可执行且不是伪配置。",
+      "problem_resolution": "是否直接解决用户场景，而不是泛泛解释 Render。",
+      "hidden_critical_errors": "是否存在严重误导，如硬编码密钥、忽略 PORT、错误服务类型、错误数据库连接方式。",
+      "document_standard": "如果回答是方案/文档，结构是否清楚，章节是否完整，可作为交付说明。"
+    },
+    "quality_thresholds": {
+      "local_score": 0.65,
+      "judge_score": 0.7,
+      "components": {
+        "forbidden": 1.0,
+        "hallucination_free": 1.0
+      }
+    },
+    "notes": "扩展 QA schema：同时评估技术正确性、步骤顺序、配置可执行性、问题解决度、隐藏严重错误和文档标准。"
+  },
+  {
+    "id": "QA-20",
+    "query": "我在多个 Render workspace 之间切换，怎么看当前是哪个 workspace",
+    "expected_skill": "render-deploy",
+    "difficulty": "medium",
+    "description": "Workspace 管理",
+    "category": "deployment",
+    "turns": [
+      "我在多个 Render workspace 之间切换，怎么看当前是哪个 workspace"
+    ],
+    "expected_activation": true,
+    "must_include": [
+      "workspace",
+      "current",
+      "切换",
+      "list_workspaces",
+      "selected"
+    ],
+    "should_include": [],
+    "forbidden": [
+      "伪造 API key",
+      "硬编码密钥",
+      "提交密钥",
+      "固定 3000 端口即可",
+      "忽略 PORT"
+    ],
+    "allowed_references": [],
+    "ordered_steps": [
+      {
+        "any": [
+          "workspace"
+        ]
+      },
+      {
+        "any": [
+          "current",
+          "当前"
+        ]
+      },
+      {
+        "any": [
+          "list_workspaces",
+          "列表"
+        ]
+      },
+      {
+        "any": [
+          "切换",
+          "selected"
+        ]
+      }
+    ],
+    "technical_checks": [
+      {
+        "id": "workspace_current",
+        "must_include_any": [
+          "workspace",
+          "list_workspaces",
+          "current",
+          "selected"
+        ]
+      }
+    ],
+    "config_checks": [],
+    "document_standard": {
+      "min_sections": 3,
+      "min_chars": 200,
+      "required_sections_any": [
+        "查看",
+        "切换",
+        "确认"
+      ]
+    },
+    "artifact_expectation": {
+      "required": false
+    },
+    "judge_rubric": {
+      "technical_correctness": "是否符合 Render 部署、环境变量、端口、服务类型、数据库/worker 等真实技术规则。",
+      "step_order": "是否按前提检查、配置、部署、验证/排错的合理顺序回答。",
+      "config_executability": "涉及 render.yaml 或命令时，配置字段是否可执行且不是伪配置。",
+      "problem_resolution": "是否直接解决用户场景，而不是泛泛解释 Render。",
+      "hidden_critical_errors": "是否存在严重误导，如硬编码密钥、忽略 PORT、错误服务类型、错误数据库连接方式。",
+      "document_standard": "如果回答是方案/文档，结构是否清楚，章节是否完整，可作为交付说明。"
+    },
+    "quality_thresholds": {
+      "local_score": 0.65,
+      "judge_score": 0.7,
+      "components": {
+        "forbidden": 1.0,
+        "hallucination_free": 1.0
+      }
+    },
+    "notes": "扩展 QA schema：同时评估技术正确性、步骤顺序、配置可执行性、问题解决度、隐藏严重错误和文档标准。"
+  }
 ]
